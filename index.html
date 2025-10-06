@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guitar Tuner Pro - Professionelles Gitarrenstimmgerät</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+
+        .tuning-selector {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .tuning-btn {
+            padding: 10px 20px;
+            border: 2px solid #667eea;
+            background: white;            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.9em;
+            font-weight: 600;
+        }
+
+        .tuning-btn:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .tuning-btn.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .control-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .start-btn {
+            padding: 15px 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 30px;
+            font-size: 1.2em;
+            font-weight: bold;            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            align-self: center;
+        }
+
+        .start-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .start-btn:active {
+            transform: translateY(0);
+        }
+
+        .start-btn.active {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .note-display {
+            text-align: center;
+            padding: 40px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 15px;
+            margin-bottom: 20px;
+        }
+
+        .detected-note {
+            font-size: 4em;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .frequency {
+            font-size: 1.2em;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .cents-display {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        .cents-display.flat {
+            color: #f5576c;
+        }
+
+        .cents-display.sharp {
+            color: #f093fb;
+        }
+
+        .cents-display.in-tune {
+            color: #4caf50;
+        }
+
+        .tuning-meter {
+            width: 100%;
+            height: 60px;
+            background: #f0f0f0;
+            border-radius: 30px;
+            position: relative;
+            overflow: hidden;
+            margin-bottom: 30px;
+        }
+        .tuning-indicator {
+            position: absolute;
+            width: 20px;
+            height: 100%;
+            background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+            border-radius: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            transition: left 0.1s ease-out;
+        }
+
+        .center-line {
+            position: absolute;
+            width: 3px;
+            height: 100%;
+            background: #333;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1;
+        }
+
+        .string-display {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        .string-card {
+            padding: 20px;
+            background: #f5f7fa;
+            border-radius: 10px;
+            text-align: center;            transition: all 0.3s;
+            border: 3px solid transparent;
+        }
+
+        .string-card.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            transform: scale(1.05);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .string-name {
+            font-size: 0.9em;
+            margin-bottom: 5px;
+            opacity: 0.7;
+        }
+
+        .string-note {
+            font-size: 2em;
+            font-weight: bold;
+        }
+
+        .string-freq {
+            font-size: 0.8em;
+            margin-top: 5px;
+            opacity: 0.7;
+        }
+
+        .status {
+            text-align: center;
+            padding: 15px;
+            background: #f0f0f0;
+            border-radius: 10px;            margin-top: 20px;
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .status.error {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        .status.active {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 1.8em;
+            }
+
+            .detected-note {
+                font-size: 3em;
+            }
+
+            .string-card {
+                padding: 15px;
+            }
+        }
+    </style>
+</head><body>
+    <div class="container">
+        <h1>🎸 Guitar Tuner Pro</h1>
+        <p class="subtitle">Professionelles Gitarrenstimmgerät</p>
+
+        <div class="tuning-selector">
+            <button class="tuning-btn active" data-tuning="standard">Standard</button>
+            <button class="tuning-btn" data-tuning="dropd">Drop D</button>
+            <button class="tuning-btn" data-tuning="openg">Open G</button>
+            <button class="tuning-btn" data-tuning="dadgad">DADGAD</button>
+        </div>
+
+        <div class="control-panel">
+            <button class="start-btn" id="startBtn">Stimmgerät starten</button>
+        </div>
+
+        <div class="note-display">
+            <div class="detected-note" id="detectedNote">--</div>
+            <div class="frequency" id="frequency">-- Hz</div>
+            <div class="cents-display" id="cents">-- Cent</div>
+        </div>
+
+        <div class="tuning-meter">
+            <div class="center-line"></div>
+            <div class="tuning-indicator" id="tuningIndicator"></div>
+        </div>
+
+        <div class="string-display" id="stringDisplay"></div>
+
+        <div class="status" id="status">
+            Klicke auf "Stimmgerät starten" um zu beginnen
+        </div>
+    </div>
+    <script>
+        const tunings = {
+            standard: [
+                { name: 'E6', note: 'E', freq: 82.41, string: 6 },
+                { name: 'A5', note: 'A', freq: 110.00, string: 5 },
+                { name: 'D4', note: 'D', freq: 146.83, string: 4 },
+                { name: 'G3', note: 'G', freq: 196.00, string: 3 },
+                { name: 'B2', note: 'B', freq: 246.94, string: 2 },
+                { name: 'E1', note: 'E', freq: 329.63, string: 1 }
+            ],
+            dropd: [
+                { name: 'D6', note: 'D', freq: 73.42, string: 6 },
+                { name: 'A5', note: 'A', freq: 110.00, string: 5 },
+                { name: 'D4', note: 'D', freq: 146.83, string: 4 },
+                { name: 'G3', note: 'G', freq: 196.00, string: 3 },
+                { name: 'B2', note: 'B', freq: 246.94, string: 2 },
+                { name: 'E1', note: 'E', freq: 329.63, string: 1 }
+            ],
+            openg: [
+                { name: 'D6', note: 'D', freq: 73.42, string: 6 },
+                { name: 'G5', note: 'G', freq: 98.00, string: 5 },
+                { name: 'D4', note: 'D', freq: 146.83, string: 4 },
+                { name: 'G3', note: 'G', freq: 196.00, string: 3 },
+                { name: 'B2', note: 'B', freq: 246.94, string: 2 },
+                { name: 'D1', note: 'D', freq: 293.66, string: 1 }
+            ],
+            dadgad: [
+                { name: 'D6', note: 'D', freq: 73.42, string: 6 },
+                { name: 'A5', note: 'A', freq: 110.00, string: 5 },                { name: 'D4', note: 'D', freq: 146.83, string: 4 },
+                { name: 'G3', note: 'G', freq: 196.00, string: 3 },
+                { name: 'A2', note: 'A', freq: 220.00, string: 2 },
+                { name: 'D1', note: 'D', freq: 293.66, string: 1 }
+            ]
+        };
+
+        const noteStrings = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+        
+        let audioContext, analyser, microphone, scriptProcessor;
+        let isRunning = false;
+        let currentTuning = 'standard';
+
+        const startBtn = document.getElementById('startBtn');
+        const detectedNoteEl = document.getElementById('detectedNote');
+        const frequencyEl = document.getElementById('frequency');
+        const centsEl = document.getElementById('cents');
+        const tuningIndicator = document.getElementById('tuningIndicator');
+        const stringDisplay = document.getElementById('stringDisplay');
+        const statusEl = document.getElementById('status');
+
+        function displayStrings() {
+            const strings = tunings[currentTuning];
+            stringDisplay.innerHTML = strings.map(s => `
+                <div class="string-card" data-string="${s.string}">
+                    <div class="string-name">Saite ${s.string}</div>
+                    <div class="string-note">${s.note}</div>
+                    <div class="string-freq">${s.freq.toFixed(2)} Hz</div>
+                </div>
+            `).join('');
+        }
+        document.querySelectorAll('.tuning-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.tuning-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentTuning = btn.dataset.tuning;
+                displayStrings();
+            });
+        });
+
+        function frequencyToNote(frequency) {
+            const A4 = 440;
+            const C0 = A4 * Math.pow(2, -4.75);
+            const halfSteps = 12 * Math.log2(frequency / C0);
+            const noteIndex = Math.round(halfSteps) % 12;
+            const octave = Math.floor(halfSteps / 12);
+            const cents = Math.floor((halfSteps - Math.round(halfSteps)) * 100);
+            
+            return {
+                note: noteStrings[noteIndex],
+                octave: octave,
+                cents: cents,
+                frequency: frequency
+            };
+        }
+
+        function findClosestString(frequency) {
+            const strings = tunings[currentTuning];
+            let closest = strings[0];
+            let minDiff = Math.abs(frequency - closest.freq);
+
+            strings.forEach(string => {
+                const diff = Math.abs(frequency - string.freq);                if (diff < minDiff) {
+                    minDiff = diff;
+                    closest = string;
+                }
+            });
+
+            const semitones = 12 * Math.log2(frequency / closest.freq);
+            const cents = Math.round(semitones * 100);
+
+            return { string: closest, cents: cents };
+        }
+
+        function updateDisplay(frequency) {
+            const noteInfo = frequencyToNote(frequency);
+            const closestString = findClosestString(frequency);
+
+            detectedNoteEl.textContent = `${noteInfo.note}${noteInfo.octave}`;
+            frequencyEl.textContent = `${frequency.toFixed(2)} Hz`;
+            
+            const cents = closestString.cents;
+            centsEl.textContent = cents > 0 ? `+${cents} Cent` : `${cents} Cent`;
+            
+            if (Math.abs(cents) < 5) {
+                centsEl.className = 'cents-display in-tune';
+                statusEl.textContent = `✓ Perfekt gestimmt!`;
+                statusEl.className = 'status active';
+            } else if (cents < 0) {
+                centsEl.className = 'cents-display flat';
+                statusEl.textContent = `↓ Zu tief - Saite spannen`;
+                statusEl.className = 'status';
+            } else {                centsEl.className = 'cents-display sharp';
+                statusEl.textContent = `↑ Zu hoch - Saite lockern`;
+                statusEl.className = 'status';
+            }
+
+            const indicatorPosition = 50 + (cents / 50) * 40;
+            tuningIndicator.style.left = `${Math.max(5, Math.min(95, indicatorPosition))}%`;
+
+            document.querySelectorAll('.string-card').forEach(card => {
+                card.classList.remove('active');
+            });
+            const activeCard = document.querySelector(`[data-string="${closestString.string.string}"]`);
+            if (activeCard) {
+                activeCard.classList.add('active');
+            }
+        }
+
+        function autoCorrelate(buffer, sampleRate) {
+            const SIZE = buffer.length;
+            const MAX_SAMPLES = Math.floor(SIZE / 2);
+            let bestOffset = -1;
+            let bestCorrelation = 0;
+            let rms = 0;
+
+            for (let i = 0; i < SIZE; i++) {
+                rms += buffer[i] * buffer[i];
+            }
+            rms = Math.sqrt(rms / SIZE);
+
+            if (rms < 0.01) return -1;
+
+            let lastCorrelation = 1;            for (let offset = 1; offset < MAX_SAMPLES; offset++) {
+                let correlation = 0;
+                for (let i = 0; i < MAX_SAMPLES; i++) {
+                    correlation += Math.abs(buffer[i] - buffer[i + offset]);
+                }
+                correlation = 1 - (correlation / MAX_SAMPLES);
+
+                if (correlation > 0.9 && correlation > lastCorrelation) {
+                    const foundGoodCorrelation = correlation > bestCorrelation;
+                    if (foundGoodCorrelation) {
+                        bestCorrelation = correlation;
+                        bestOffset = offset;
+                    }
+                }
+                lastCorrelation = correlation;
+            }
+
+            if (bestCorrelation > 0.01) {
+                return sampleRate / bestOffset;
+            }
+            return -1;
+        }
+
+        async function startTuner() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = audioContext.createAnalyser();
+                microphone = audioContext.createMediaStreamSource(stream);
+                scriptProcessor = audioContext.createScriptProcessor(4096, 1, 1);
+                analyser.fftSize = 4096;
+                microphone.connect(analyser);
+                analyser.connect(scriptProcessor);
+                scriptProcessor.connect(audioContext.destination);
+
+                const buffer = new Float32Array(4096);
+
+                scriptProcessor.onaudioprocess = function() {
+                    analyser.getFloatTimeDomainData(buffer);
+                    const frequency = autoCorrelate(buffer, audioContext.sampleRate);
+                    
+                    if (frequency > 60 && frequency < 1000) {
+                        updateDisplay(frequency);
+                    }
+                };
+
+                isRunning = true;
+                startBtn.textContent = 'Stimmgerät stoppen';
+                startBtn.classList.add('active');
+                statusEl.textContent = '🎤 Mikrofon aktiv - Spiele eine Saite';
+                statusEl.className = 'status active';
+
+            } catch (error) {
+                statusEl.textContent = '❌ Mikrofonzugriff verweigert';
+                statusEl.className = 'status error';
+                console.error('Fehler beim Zugriff auf Mikrofon:', error);
+            }
+        }
+
+        function stopTuner() {
+            if (scriptProcessor) {                scriptProcessor.disconnect();
+                scriptProcessor = null;
+            }
+            if (microphone) {
+                microphone.disconnect();
+                microphone = null;
+            }
+            if (analyser) {
+                analyser.disconnect();
+                analyser = null;
+            }
+            if (audioContext) {
+                audioContext.close();
+                audioContext = null;
+            }
+
+            isRunning = false;
+            startBtn.textContent = 'Stimmgerät starten';
+            startBtn.classList.remove('active');
+            statusEl.textContent = 'Stimmgerät gestoppt';
+            statusEl.className = 'status';
+            detectedNoteEl.textContent = '--';
+            frequencyEl.textContent = '-- Hz';
+            centsEl.textContent = '-- Cent';
+            centsEl.className = 'cents-display';
+            tuningIndicator.style.left = '50%';
+            document.querySelectorAll('.string-card').forEach(card => {
+                card.classList.remove('active');
+            });
+        }
+
+        startBtn.addEventListener('click', () => {            if (isRunning) {
+                stopTuner();
+            } else {
+                startTuner();
+            }
+        });
+
+        displayStrings();
+    </script>
+</body>
+</html>
