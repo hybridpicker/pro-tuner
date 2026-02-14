@@ -1,108 +1,206 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="en">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Guitar Tuner Pro - Professionelles Gitarrenstimmgerät</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Courier New', monospace; background: #2a2a2a; min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }
-        .container { background: linear-gradient(145deg, #4a4a4a, #3a3a3a); border-radius: 8px; padding: 30px; max-width: 500px; width: 100%; box-shadow: 0 8px 16px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1); border: 2px solid #2a2a2a; }
-        h1 { text-align: center; color: #c0c0c0; margin-bottom: 5px; font-size: 1.2em; font-weight: normal; letter-spacing: 4px; text-transform: uppercase; }
-        .subtitle { text-align: center; color: #808080; margin-bottom: 25px; font-size: 0.75em; letter-spacing: 2px; text-transform: uppercase; }
-        .tuning-selector { display: flex; justify-content: center; gap: 8px; margin-bottom: 25px; flex-wrap: wrap; }
-        .tuning-btn { padding: 8px 16px; border: 1px solid #555; background: linear-gradient(180deg, #5a5a5a, #4a4a4a); color: #c0c0c0; border-radius: 3px; cursor: pointer; transition: all 0.2s; font-size: 0.8em; font-weight: bold; font-family: 'Courier New', monospace; letter-spacing: 1px; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5); box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1); }
-        .tuning-btn:hover { background: linear-gradient(180deg, #6a6a6a, #5a5a5a); transform: translateY(-1px); }
-        .tuning-btn:active { transform: translateY(0); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), inset 0 1px 3px rgba(0, 0, 0, 0.3); }
-        .tuning-btn.active { background: linear-gradient(180deg, #cc3333, #aa2222); border-color: #aa2222; color: #fff; }
-        .control-panel { display: flex; flex-direction: column; gap: 20px; margin-bottom: 25px; }
-        .start-btn { padding: 12px 40px; background: linear-gradient(180deg, #5a5a5a, #4a4a4a); color: #c0c0c0; border: 2px solid #555; border-radius: 4px; font-size: 1em; font-weight: bold; cursor: pointer; transition: all 0.2s; align-self: center; font-family: 'Courier New', monospace; letter-spacing: 2px; text-transform: uppercase; box-shadow: 0 3px 6px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1); }
-        .start-btn:hover { background: linear-gradient(180deg, #6a6a6a, #5a5a5a); transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1); }
-        .start-btn:active { transform: translateY(0); box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4), inset 0 1px 3px rgba(0, 0, 0, 0.3); }
-        .start-btn.active { background: linear-gradient(180deg, #cc3333, #aa2222); border-color: #aa2222; color: #fff; box-shadow: 0 0 15px rgba(204, 51, 51, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.2); }
-        .note-display { text-align: center; padding: 20px; background: #1a1a1a; border-radius: 4px; margin-bottom: 20px; border: 2px solid #2a2a2a; box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.6); }
-        .detected-note { font-size: 3em; font-weight: bold; color: #ff3333; margin-bottom: 10px; font-family: 'Courier New', monospace; text-shadow: 0 0 10px rgba(255, 51, 51, 0.5); letter-spacing: 3px; }
-        .frequency { font-size: 1em; color: #00ff00; margin-bottom: 5px; font-family: 'Courier New', monospace; text-shadow: 0 0 5px rgba(0, 255, 0, 0.5); }
-        .cents-display { font-size: 1.2em; font-weight: bold; margin-top: 10px; font-family: 'Courier New', monospace; }
-        .cents-display.flat { color: #ff9900; text-shadow: 0 0 5px rgba(255, 153, 0, 0.5); }
-        .cents-display.sharp { color: #ff9900; text-shadow: 0 0 5px rgba(255, 153, 0, 0.5); }
-        .cents-display.in-tune { color: #00ff00; text-shadow: 0 0 10px rgba(0, 255, 0, 0.7); }
-        .tuning-meter { width: 100%; height: 120px; background: #1a1a1a; border-radius: 4px; position: relative; overflow: hidden; margin-bottom: 25px; border: 2px solid #2a2a2a; box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.6); }
-        .meter-marks { position: absolute; top: 20px; left: 0; right: 0; display: flex; justify-content: space-between; padding: 0 15%; font-size: 0.7em; color: #666; font-family: 'Courier New', monospace; }
-        .tuning-indicator { position: absolute; width: 4px; height: 70px; background: #ff3333; bottom: 30px; left: 50%; transform: translateX(-50%) rotate(0deg); transform-origin: bottom center; transition: transform 0.1s ease-out; box-shadow: 0 0 10px rgba(255, 51, 51, 0.8); z-index: 3; }
-        .tuning-indicator::before { content: ''; position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%); width: 12px; height: 12px; background: #ff3333; border-radius: 50%; box-shadow: 0 0 5px rgba(255, 51, 51, 0.8), inset 0 1px 2px rgba(255, 255, 255, 0.3); }
-        .tuning-indicator.in-tune { background: #00ff00; box-shadow: 0 0 15px rgba(0, 255, 0, 1); }
-        .tuning-indicator.in-tune::before { background: #00ff00; box-shadow: 0 0 10px rgba(0, 255, 0, 1), inset 0 1px 2px rgba(255, 255, 255, 0.3); }
-        .center-line { position: absolute; width: 2px; height: 30px; background: #00ff00; bottom: 25px; left: 50%; transform: translateX(-50%); z-index: 2; box-shadow: 0 0 5px rgba(0, 255, 0, 0.5); }
-        .string-display { display: grid; grid-template-columns: repeat(auto-fit, minmax(70px, 1fr)); gap: 10px; margin-top: 25px; }
-        .string-card { padding: 15px 10px; background: linear-gradient(180deg, #3a3a3a, #2a2a2a); border-radius: 3px; text-align: center; transition: all 0.3s; border: 1px solid #4a4a4a; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05); }
-        .string-card.active { background: linear-gradient(180deg, #cc3333, #aa2222); border-color: #ff3333; transform: scale(1.05); box-shadow: 0 0 15px rgba(204, 51, 51, 0.6), 0 4px 8px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.2); }
-        .string-name { font-size: 0.7em; margin-bottom: 5px; color: #808080; font-family: 'Courier New', monospace; letter-spacing: 1px; }
-        .string-card.active .string-name { color: #ffcccc; }
-        .string-note { font-size: 1.8em; font-weight: bold; color: #c0c0c0; font-family: 'Courier New', monospace; }
-        .string-card.active .string-note { color: #fff; text-shadow: 0 0 8px rgba(255, 255, 255, 0.5); }
-        .string-freq { font-size: 0.65em; margin-top: 5px; color: #666; font-family: 'Courier New', monospace; }
-        .string-card.active .string-freq { color: #ffcccc; }
-        .status { text-align: center; padding: 12px; background: #1a1a1a; border-radius: 3px; margin-top: 20px; font-size: 0.85em; color: #808080; font-family: 'Courier New', monospace; border: 1px solid #2a2a2a; letter-spacing: 1px; }
-        .status.error { background: #331a1a; color: #ff6666; border-color: #4a2222; }
-        .status.active { background: #1a331a; color: #66ff66; border-color: #224a22; text-shadow: 0 0 5px rgba(102, 255, 102, 0.3); }
-        .led-indicator { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; }
-        .led-dot { width: 8px; height: 8px; border-radius: 50%; background: #2a2a2a; border: 1px solid #3a3a3a; box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5); }
-        .led-dot.active { background: #00ff00; box-shadow: 0 0 8px rgba(0, 255, 0, 0.8), inset 0 1px 2px rgba(255, 255, 255, 0.3); }
-        @media (max-width: 600px) {
-            .container { padding: 20px; }
-            h1 { font-size: 1em; letter-spacing: 3px; }
-            .detected-note { font-size: 2.5em; }
-            .string-card { padding: 12px 8px; }
-            .tuning-meter { height: 100px; }
-            .tuning-indicator { height: 50px; }
-        }
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Pro Tuner — Professional Chromatic Instrument Tuner</title>
+    <meta name="description"
+        content="Free professional chromatic tuner for guitar, bass, ukulele, violin and more. PWA with offline support, strobe meter, and ±0.5 cent accuracy.">
+    <meta property="og:title" content="Pro Tuner — Professional Chromatic Instrument Tuner">
+    <meta property="og:description"
+        content="Tune any string instrument with professional accuracy. Free, works offline.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://tuner.schoensgibl.com">
+    <meta name="theme-color" content="#e8a838">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="icon" href="/icons/favicon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="/icons/icon-192.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=DM+Sans:wght@400;500;600&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
 </head>
+
 <body>
-    <div class="container">
-        <h1>GUITAR TUNER</h1>
-        <p class="subtitle">Professional Chromatic</p>
-        <div class="tuning-selector">
-            <button class="tuning-btn active" data-tuning="standard">STANDARD</button>
-            <button class="tuning-btn" data-tuning="dropd">DROP D</button>
-            <button class="tuning-btn" data-tuning="openg">OPEN G</button>
-            <button class="tuning-btn" data-tuning="dadgad">DADGAD</button>
-        </div>
-        <div class="control-panel">
-            <button class="start-btn" id="startBtn">POWER</button>
-        </div>
-        <div class="note-display">
-            <div class="detected-note" id="detectedNote">--</div>
-            <div class="frequency" id="frequency">-- Hz</div>
-            <div class="cents-display" id="cents">-- CENT</div>
-        </div>
-        <div class="tuning-meter">
-            <div class="meter-marks"><span>-50</span><span>-25</span><span>0</span><span>+25</span><span>+50</span></div>
-            <div class="center-line"></div>
-            <div class="tuning-indicator" id="tuningIndicator"></div>
-            <div class="led-indicator">
-                <div class="led-dot"></div><div class="led-dot"></div><div class="led-dot active"></div><div class="led-dot"></div><div class="led-dot"></div>
+    <div class="app" id="app">
+        <!-- Header -->
+        <header class="header">
+            <h1 class="header__title">PRO TUNER</h1>
+            <p class="header__subtitle">Professional Chromatic</p>
+            <div class="header__actions">
+                <button class="btn-icon" id="themeToggle" aria-label="Toggle theme" title="Toggle theme">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                    </svg>
+                </button>
+                <button class="btn-icon" id="settingsToggle" aria-label="Open settings" title="Settings">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3" />
+                        <path
+                            d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                    </svg>
+                </button>
             </div>
+        </header>
+
+        <!-- Instrument & Tuning Selector -->
+        <section class="selector" aria-label="Instrument and tuning selection">
+            <div class="selector__instruments" id="instrumentSelector" role="tablist" aria-label="Instrument"></div>
+            <div class="selector__tunings" id="tuningSelector" role="tablist" aria-label="Tuning"></div>
+        </section>
+
+        <!-- Power Button -->
+        <div class="power-section">
+            <button class="power-btn" id="powerBtn" aria-label="Toggle tuner on/off">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                    stroke-linecap="round">
+                    <line x1="12" y1="2" x2="12" y2="12" />
+                    <path d="M16.24 7.76a6 6 0 1 1-8.48 0" />
+                </svg>
+                <span>POWER</span>
+            </button>
         </div>
-        <div class="string-display" id="stringDisplay"></div>
-        <div class="status" id="status">PRESS POWER TO START</div>
+
+        <!-- Note Display -->
+        <section class="note-display" aria-live="polite" aria-label="Detected pitch">
+            <div class="note-display__note" id="detectedNote">—</div>
+            <div class="note-display__octave" id="detectedOctave"></div>
+            <div class="note-display__frequency" id="frequency">— Hz</div>
+            <div class="note-display__cents" id="cents">— cent</div>
+        </section>
+
+        <!-- Tuning Meter -->
+        <section class="meter-section" aria-label="Tuning meter">
+            <div class="meter-mode-toggle">
+                <button class="meter-mode-btn active" data-mode="needle" aria-label="Needle meter">Needle</button>
+                <button class="meter-mode-btn" data-mode="strobe" aria-label="Strobe meter">Strobe</button>
+            </div>
+            <div class="meter-container">
+                <canvas id="meterCanvas" aria-hidden="true"></canvas>
+            </div>
+            <!-- Input Level -->
+            <div class="input-level">
+                <div class="input-level__bar">
+                    <div class="input-level__fill" id="inputLevel"></div>
+                </div>
+                <div class="input-level__labels">
+                    <span>MIN</span>
+                    <span>INPUT LEVEL</span>
+                    <span>MAX</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Visualizations (collapsible) -->
+        <section class="visualizations" id="visualizations" aria-label="Audio visualizations">
+            <button class="visualizations__toggle" id="vizToggle" aria-expanded="false">
+                <span>Visualizations</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="6 9 12 15 18 9" />
+                </svg>
+            </button>
+            <div class="visualizations__panel" id="vizPanel" hidden>
+                <div class="viz-canvas-wrapper">
+                    <canvas id="waveformCanvas" aria-label="Waveform display"></canvas>
+                </div>
+                <div class="viz-canvas-wrapper">
+                    <canvas id="pitchHistoryCanvas" aria-label="Pitch history"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- String Cards -->
+        <section class="strings" aria-label="Tuning strings">
+            <div class="strings__grid" id="stringDisplay" role="group"></div>
+            <div class="strings__hint" id="stringHint">Tap a string to hear its reference tone</div>
+        </section>
+
+        <!-- Status Bar -->
+        <footer class="status-bar" aria-live="polite">
+            <div class="status-bar__text" id="status">Press power to start</div>
+        </footer>
+
+        <!-- Settings Panel (slide-in) -->
+        <div class="settings-overlay" id="settingsOverlay" hidden></div>
+        <aside class="settings-panel" id="settingsPanel" role="dialog" aria-label="Settings" hidden>
+            <div class="settings-panel__header">
+                <h2>Settings</h2>
+                <button class="btn-icon" id="settingsClose" aria-label="Close settings">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                </button>
+            </div>
+            <div class="settings-panel__body">
+                <!-- A4 Reference -->
+                <div class="setting-group">
+                    <label class="setting-label">A4 Reference Pitch</label>
+                    <div class="setting-a4">
+                        <button class="setting-a4__btn" id="a4Minus" aria-label="Decrease A4">−</button>
+                        <input type="number" class="setting-a4__input" id="a4Input" value="440" min="430" max="450"
+                            aria-label="A4 frequency in Hz">
+                        <span class="setting-a4__unit">Hz</span>
+                        <button class="setting-a4__btn" id="a4Plus" aria-label="Increase A4">+</button>
+                    </div>
+                </div>
+                <!-- Meter Style -->
+                <div class="setting-group">
+                    <label class="setting-label">Meter Style</label>
+                    <div class="setting-toggle" role="radiogroup" aria-label="Meter style">
+                        <button class="setting-toggle__btn active" data-value="needle" role="radio"
+                            aria-checked="true">Needle</button>
+                        <button class="setting-toggle__btn" data-value="strobe" role="radio"
+                            aria-checked="false">Strobe</button>
+                    </div>
+                </div>
+                <!-- Sensitivity -->
+                <div class="setting-group">
+                    <label class="setting-label">Sensitivity</label>
+                    <div class="setting-toggle" role="radiogroup" aria-label="Sensitivity">
+                        <button class="setting-toggle__btn" data-value="low" role="radio"
+                            aria-checked="false">Low</button>
+                        <button class="setting-toggle__btn active" data-value="medium" role="radio"
+                            aria-checked="true">Medium</button>
+                        <button class="setting-toggle__btn" data-value="high" role="radio"
+                            aria-checked="false">High</button>
+                    </div>
+                </div>
+                <!-- Notation -->
+                <div class="setting-group">
+                    <label class="setting-label">Notation</label>
+                    <div class="setting-toggle" role="radiogroup" aria-label="Notation preference">
+                        <button class="setting-toggle__btn active" data-value="sharp" role="radio"
+                            aria-checked="true">Sharp ♯</button>
+                        <button class="setting-toggle__btn" data-value="flat" role="radio"
+                            aria-checked="false">Flat ♭</button>
+                    </div>
+                </div>
+                <!-- Transposition -->
+                <div class="setting-group">
+                    <label class="setting-label">Transposition</label>
+                    <div class="setting-select">
+                        <select id="transposition" aria-label="Transposition in semitones">
+                            <option value="0" selected>None (Concert)</option>
+                            <option value="-1">-1 Semitone</option>
+                            <option value="-2">-2 Semitones</option>
+                            <option value="-3">-3 Semitones</option>
+                            <option value="-4">-4 Semitones</option>
+                            <option value="-5">-5 Semitones</option>
+                            <option value="-6">-6 Semitones</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </aside>
     </div>
-    <script>
-const tunings={standard:[{name:'E6',note:'E',freq:82.41,string:6},{name:'A5',note:'A',freq:110.00,string:5},{name:'D4',note:'D',freq:146.83,string:4},{name:'G3',note:'G',freq:196.00,string:3},{name:'B2',note:'B',freq:246.94,string:2},{name:'E1',note:'E',freq:329.63,string:1}],dropd:[{name:'D6',note:'D',freq:73.42,string:6},{name:'A5',note:'A',freq:110.00,string:5},{name:'D4',note:'D',freq:146.83,string:4},{name:'G3',note:'G',freq:196.00,string:3},{name:'B2',note:'B',freq:246.94,string:2},{name:'E1',note:'E',freq:329.63,string:1}],openg:[{name:'D6',note:'D',freq:73.42,string:6},{name:'G5',note:'G',freq:98.00,string:5},{name:'D4',note:'D',freq:146.83,string:4},{name:'G3',note:'G',freq:196.00,string:3},{name:'B2',note:'B',freq:246.94,string:2},{name:'D1',note:'D',freq:293.66,string:1}],dadgad:[{name:'D6',note:'D',freq:73.42,string:6},{name:'A5',note:'A',freq:110.00,string:5},{name:'D4',note:'D',freq:146.83,string:4},{name:'G3',note:'G',freq:196.00,string:3},{name:'A2',note:'A',freq:220.00,string:2},{name:'D1',note:'D',freq:293.66,string:1}]};
-const noteStrings=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
-let audioContext,analyser,microphone,scriptProcessor,isRunning=false,currentTuning='standard';
-const startBtn=document.getElementById('startBtn'),detectedNoteEl=document.getElementById('detectedNote'),frequencyEl=document.getElementById('frequency'),centsEl=document.getElementById('cents'),tuningIndicator=document.getElementById('tuningIndicator'),stringDisplay=document.getElementById('stringDisplay'),statusEl=document.getElementById('status');
-function displayStrings(){const strings=tunings[currentTuning];stringDisplay.innerHTML=strings.map(s=>`<div class="string-card" data-string="${s.string}"><div class="string-name">STRING ${s.string}</div><div class="string-note">${s.note}</div><div class="string-freq">${s.freq.toFixed(2)} Hz</div></div>`).join('');}
-document.querySelectorAll('.tuning-btn').forEach(btn=>{btn.addEventListener('click',()=>{document.querySelectorAll('.tuning-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');currentTuning=btn.dataset.tuning;displayStrings();});});
-function frequencyToNote(frequency){const A4=440,C0=A4*Math.pow(2,-4.75),halfSteps=12*Math.log2(frequency/C0),noteIndex=Math.round(halfSteps)%12,octave=Math.floor(halfSteps/12),cents=Math.floor((halfSteps-Math.round(halfSteps))*100);return{note:noteStrings[noteIndex],octave:octave,cents:cents,frequency:frequency};}
-function findClosestString(frequency){const strings=tunings[currentTuning];let closest=strings[0],minDiff=Math.abs(frequency-closest.freq);strings.forEach(string=>{const diff=Math.abs(frequency-string.freq);if(diff<minDiff){minDiff=diff;closest=string;}});const semitones=12*Math.log2(frequency/closest.freq),cents=Math.round(semitones*100);return{string:closest,cents:cents};}
-function updateDisplay(frequency){const noteInfo=frequencyToNote(frequency),closestString=findClosestString(frequency);detectedNoteEl.textContent=`${noteInfo.note}${noteInfo.octave}`;frequencyEl.textContent=`${frequency.toFixed(2)} Hz`;const cents=closestString.cents;centsEl.textContent=cents>0?`+${cents} CENT`:`${cents} CENT`;const rotation=Math.max(-45,Math.min(45,cents*0.9));tuningIndicator.style.transform=`translateX(-50%) rotate(${rotation}deg)`;if(Math.abs(cents)<5){centsEl.className='cents-display in-tune';tuningIndicator.classList.add('in-tune');statusEl.textContent='IN TUNE';statusEl.className='status active';}else if(cents<0){centsEl.className='cents-display flat';tuningIndicator.classList.remove('in-tune');statusEl.textContent='FLAT - TIGHTEN STRING';statusEl.className='status';}else{centsEl.className='cents-display sharp';tuningIndicator.classList.remove('in-tune');statusEl.textContent='SHARP - LOOSEN STRING';statusEl.className='status';}document.querySelectorAll('.string-card').forEach(card=>card.classList.remove('active'));const activeCard=document.querySelector(`[data-string="${closestString.string.string}"]`);if(activeCard)activeCard.classList.add('active');}
-function autoCorrelate(buffer,sampleRate){const SIZE=buffer.length,MAX_SAMPLES=Math.floor(SIZE/2);let bestOffset=-1,bestCorrelation=0,rms=0;for(let i=0;i<SIZE;i++)rms+=buffer[i]*buffer[i];rms=Math.sqrt(rms/SIZE);if(rms<0.01)return-1;let lastCorrelation=1;for(let offset=1;offset<MAX_SAMPLES;offset++){let correlation=0;for(let i=0;i<MAX_SAMPLES;i++)correlation+=Math.abs(buffer[i]-buffer[i+offset]);correlation=1-(correlation/MAX_SAMPLES);if(correlation>0.9&&correlation>lastCorrelation){if(correlation>bestCorrelation){bestCorrelation=correlation;bestOffset=offset;}}lastCorrelation=correlation;}if(bestCorrelation>0.01)return sampleRate/bestOffset;return-1;}
-async function startTuner(){try{const stream=await navigator.mediaDevices.getUserMedia({audio:true});audioContext=new(window.AudioContext||window.webkitAudioContext)();analyser=audioContext.createAnalyser();microphone=audioContext.createMediaStreamSource(stream);scriptProcessor=audioContext.createScriptProcessor(4096,1,1);analyser.fftSize=4096;microphone.connect(analyser);analyser.connect(scriptProcessor);scriptProcessor.connect(audioContext.destination);const buffer=new Float32Array(4096);scriptProcessor.onaudioprocess=function(){analyser.getFloatTimeDomainData(buffer);const frequency=autoCorrelate(buffer,audioContext.sampleRate);if(frequency>60&&frequency<1000)updateDisplay(frequency);};isRunning=true;startBtn.textContent='STOP';startBtn.classList.add('active');statusEl.textContent='LISTENING - PLAY A STRING';statusEl.className='status active';}catch(error){statusEl.textContent='MICROPHONE ACCESS DENIED';statusEl.className='status error';console.error('Error:',error);}}
-function stopTuner(){if(scriptProcessor){scriptProcessor.disconnect();scriptProcessor=null;}if(microphone){microphone.disconnect();microphone=null;}if(analyser){analyser.disconnect();analyser=null;}if(audioContext){audioContext.close();audioContext=null;}isRunning=false;startBtn.textContent='POWER';startBtn.classList.remove('active');statusEl.textContent='TUNER OFF';statusEl.className='status';detectedNoteEl.textContent='--';frequencyEl.textContent='-- Hz';centsEl.textContent='-- CENT';centsEl.className='cents-display';tuningIndicator.style.transform='translateX(-50%) rotate(0deg)';tuningIndicator.classList.remove('in-tune');document.querySelectorAll('.string-card').forEach(card=>card.classList.remove('active'));}
-startBtn.addEventListener('click',()=>{if(isRunning)stopTuner();else startTuner();});
-displayStrings();
-    </script>
+
+    <script type="module" src="/js/app.js"></script>
 </body>
+
 </html>
