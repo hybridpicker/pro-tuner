@@ -462,16 +462,16 @@ function handlePitchResult(data) {
   const levelPct = Math.min(100, Math.max(0, levelDb * 2));
   els.inputLevel.style.width = `${levelPct}%`;
 
-  // Noise gate check
-  if (!noiseGate.isAboveThreshold(rms) || frequency <= 0) {
-    return;
-  }
-
-  // Update waveform if visualizations are visible
+  // Update waveform if visualizations are visible (always, even below noise gate)
   if (viz.isVisible && analyser) {
     const timeDomainData = new Float32Array(analyser.fftSize);
     analyser.getFloatTimeDomainData(timeDomainData);
     viz.updateWaveform(timeDomainData);
+  }
+
+  // Noise gate check
+  if (!noiseGate.isAboveThreshold(rms) || frequency <= 0) {
+    return;
   }
 
   // Throttle display updates to ~60fps

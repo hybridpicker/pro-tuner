@@ -303,6 +303,61 @@ export class Visualizations {
     // Re-resolve colours in case theme changed while hidden
     this._colors = null;
     this.resize();
+    this._drawIdle();
+  }
+
+  /** Draw an idle state on both canvases so they don't appear empty. */
+  _drawIdle() {
+    const colors = this._getColors();
+
+    // Waveform: background + center line
+    const ww = this.waveformCanvas.clientWidth;
+    const wh = this.waveformCanvas.clientHeight;
+    if (ww > 0 && wh > 0) {
+      const ctx = this.waveformCtx;
+      ctx.fillStyle = colors.surface;
+      ctx.fillRect(0, 0, ww, wh);
+      ctx.strokeStyle = colors.textDim;
+      ctx.globalAlpha = 0.2;
+      ctx.lineWidth = 0.5;
+      ctx.beginPath();
+      ctx.moveTo(0, wh / 2);
+      ctx.lineTo(ww, wh / 2);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+      // Label
+      ctx.fillStyle = colors.textDim;
+      ctx.globalAlpha = 0.4;
+      ctx.font = '11px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Waveform', ww / 2, wh / 2 - 8);
+      ctx.globalAlpha = 1;
+    }
+
+    // Pitch history: background + grid
+    const pw = this.pitchCanvas.clientWidth;
+    const ph = this.pitchCanvas.clientHeight;
+    if (pw > 0 && ph > 0) {
+      const ctx = this.pitchCtx;
+      ctx.fillStyle = colors.surface;
+      ctx.fillRect(0, 0, pw, ph);
+      ctx.strokeStyle = colors.textDim;
+      ctx.globalAlpha = 0.12;
+      ctx.lineWidth = 0.5;
+      for (let i = 1; i < 5; i++) {
+        const y = (ph / 5) * i;
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(pw, y);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 0.4;
+      ctx.fillStyle = colors.textDim;
+      ctx.font = '11px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Pitch History', pw / 2, ph / 2 - 8);
+      ctx.globalAlpha = 1;
+    }
   }
 
   hide() {
