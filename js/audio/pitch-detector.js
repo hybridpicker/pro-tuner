@@ -17,7 +17,7 @@ export class PitchDetector {
   constructor(sampleRate, bufferSize = 4096) {
     this.sampleRate = sampleRate;
     this.bufferSize = bufferSize;
-    this.threshold = 0.15;
+    this.threshold = 0.2;
 
     // Frequency range: 50Hz (bass low B) to 2000Hz (mandolin upper range)
     this.minFrequency = 50;

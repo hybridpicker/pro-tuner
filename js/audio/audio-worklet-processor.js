@@ -101,7 +101,7 @@ class PitchProcessor extends AudioWorkletProcessor {
     super();
 
     // Detection parameters
-    this.threshold = 0.15;
+    this.threshold = 0.2;
     this.minFrequency = 50;
     this.maxFrequency = 2000;
 
@@ -121,6 +121,16 @@ class PitchProcessor extends AudioWorkletProcessor {
 
     // Track last detected frequency for adaptive buffer switching
     this._lastFrequency = 0;
+
+    // Median filter ring buffer (size 5) for smoothing
+    this._medianRingSize = 5;
+    this._medianRing = new Float32Array(this._medianRingSize);
+    this._medianIndex = 0;
+    this._medianCount = 0;
+    this._sortBuffer = new Float32Array(this._medianRingSize);
+
+    // Adaptive EMA smoothing state
+    this._smoothedFrequency = 0;
 
     // Listen for configuration messages from main thread
     this.port.onmessage = (event) => {
@@ -183,16 +193,32 @@ class PitchProcessor extends AudioWorkletProcessor {
       const result = this._detectPitch();
 
       if (result) {
-        this._lastFrequency = result.frequency;
+        // Median filter
+        const medianFreq = this._medianFilter(result.frequency);
+
+        // Adaptive EMA smoothing
+        const alpha = Math.max(0.08, Math.min(0.5, 30 / medianFreq));
+        if (this._smoothedFrequency === 0) {
+          this._smoothedFrequency = medianFreq;
+        } else {
+          this._smoothedFrequency =
+            alpha * medianFreq + (1 - alpha) * this._smoothedFrequency;
+        }
+
+        this._lastFrequency = this._smoothedFrequency;
 
         this.port.postMessage({
           type: 'pitch',
-          frequency: result.frequency,
+          frequency: this._smoothedFrequency,
           confidence: result.confidence,
           rms: rms,
         });
       } else {
-        // No pitch detected - still send RMS for level meter
+        // No pitch detected — decay smoothed frequency so next onset responds fast
+        this._smoothedFrequency = 0;
+        this._medianCount = 0;
+
+        // Still send RMS for level meter
         this.port.postMessage({
           type: 'pitch',
           frequency: 0,
@@ -204,12 +230,46 @@ class PitchProcessor extends AudioWorkletProcessor {
       // Adapt buffer size for next analysis cycle
       this._adaptBufferSize(this._lastFrequency);
 
-      // Reset write position
-      this.writeIndex = 0;
+      // 50% overlap: keep second half of buffer for next cycle
+      const half = Math.floor(this.analysisBufferSize / 2);
+      this.analysisBuffer.copyWithin(0, half, this.analysisBufferSize);
+      this.writeIndex = half;
     }
 
     // Keep processor alive
     return true;
+  }
+
+  /**
+   * Median filter using a ring buffer of recent frequency estimates.
+   * @param {number} frequency - Latest raw frequency estimate
+   * @returns {number} Median-filtered frequency
+   */
+  _medianFilter(frequency) {
+    this._medianRing[this._medianIndex] = frequency;
+    this._medianIndex = (this._medianIndex + 1) % this._medianRingSize;
+    this._medianCount = Math.min(this._medianCount + 1, this._medianRingSize);
+
+    const count = this._medianCount;
+    for (let i = 0; i < count; i++) {
+      this._sortBuffer[i] = this._medianRing[i];
+    }
+
+    // Insertion sort (fast for small N=5)
+    for (let i = 1; i < count; i++) {
+      const val = this._sortBuffer[i];
+      let j = i - 1;
+      while (j >= 0 && this._sortBuffer[j] > val) {
+        this._sortBuffer[j + 1] = this._sortBuffer[j];
+        j--;
+      }
+      this._sortBuffer[j + 1] = val;
+    }
+
+    const mid = Math.floor(count / 2);
+    return count % 2 !== 0
+      ? this._sortBuffer[mid]
+      : (this._sortBuffer[mid - 1] + this._sortBuffer[mid]) / 2;
   }
 
   /**

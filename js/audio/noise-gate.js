@@ -9,9 +9,9 @@
 export class NoiseGate {
   /** Threshold presets (RMS values) for different environments */
   static THRESHOLDS = {
-    low: 0.005,    // Quiet room - very sensitive, picks up soft playing
-    medium: 0.015, // Normal room - balanced, good default
-    high: 0.03,    // Noisy environment - requires louder signal
+    low: 0.002,    // Quiet room - very sensitive, picks up soft playing
+    medium: 0.008, // Normal room - balanced, good default
+    high: 0.02,    // Noisy environment - requires louder signal
   };
 
   constructor() {
