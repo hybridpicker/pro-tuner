@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pro-tuner-v3';
+const CACHE_NAME = 'pro-tuner-v4';
 const ASSETS = [
   '/',
   '/index.html',

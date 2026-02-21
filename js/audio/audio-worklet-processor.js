@@ -121,6 +121,7 @@ class PitchProcessor extends AudioWorkletProcessor {
 
     // Track last detected frequency for adaptive buffer switching
     this._lastFrequency = 0;
+    this._bufferSwitchCount = 0; // Hysteresis counter for buffer size changes
 
     // Median filter ring buffer (size 5) for smoothing
     this._medianRingSize = 5;
@@ -148,13 +149,20 @@ class PitchProcessor extends AudioWorkletProcessor {
    * @param {number} frequency - Last detected frequency
    */
   _adaptBufferSize(frequency) {
-    // Use 8192 for frequencies below 200Hz, 4096 for higher
-    const newSize = frequency > 0 && frequency >= 200 ? 4096 : 8192;
+    // Use 8192 for frequencies below 300Hz, 4096 for higher
+    const newSize = frequency > 0 && frequency >= 300 ? 4096 : 8192;
 
     if (newSize !== this.analysisBufferSize) {
-      this.analysisBufferSize = newSize;
-      this.analysisBuffer = new Float32Array(newSize);
-      this.writeIndex = 0;
+      // Require 3 consistent readings before switching (hysteresis)
+      this._bufferSwitchCount++;
+      if (this._bufferSwitchCount >= 3) {
+        this._bufferSwitchCount = 0;
+        this.analysisBufferSize = newSize;
+        this.analysisBuffer = new Float32Array(newSize);
+        this.writeIndex = 0;
+      }
+    } else {
+      this._bufferSwitchCount = 0;
     }
   }
 
@@ -193,8 +201,19 @@ class PitchProcessor extends AudioWorkletProcessor {
       const result = this._detectPitch();
 
       if (result) {
+        let freq = result.frequency;
+
+        // Octave jump correction: if frequency suddenly doubles relative to
+        // a stable previous reading, prefer the sub-octave (fundamental)
+        if (this._smoothedFrequency > 0) {
+          const ratio = freq / this._smoothedFrequency;
+          if (ratio > 1.8 && ratio < 2.2) {
+            freq = freq / 2;
+          }
+        }
+
         // Median filter
-        const medianFreq = this._medianFilter(result.frequency);
+        const medianFreq = this._medianFilter(freq);
 
         // Adaptive EMA smoothing
         const alpha = Math.max(0.08, Math.min(0.5, 30 / medianFreq));
