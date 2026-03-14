@@ -207,42 +207,6 @@ export class Settings {
             });
         };
 
-        // Meter Style
-        wireToggleGroup('Meter Style', 'meterStyle');
-
-        // Sync meter mode toggle buttons in main UI with settings
-        const syncMeterModeButtons = (value) => {
-            const mainBtns = document.querySelectorAll('.meter-mode-btn');
-            mainBtns.forEach(btn => {
-                btn.classList.toggle('active', btn.dataset.mode === value);
-            });
-        };
-
-        syncMeterModeButtons(this.get('meterStyle'));
-        this.onChange('meterStyle', syncMeterModeButtons);
-
-        // Wire main UI meter mode buttons to update settings
-        const mainMeterBtns = document.querySelectorAll('.meter-mode-btn');
-        mainMeterBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                const value = btn.dataset.mode;
-                this.set('meterStyle', value);
-
-                mainMeterBtns.forEach(b => b.classList.toggle('active', b === btn));
-
-                // Also sync the settings panel toggle
-                const meterToggle = findToggleGroup('Meter Style');
-                if (meterToggle) {
-                    const settingBtns = meterToggle.querySelectorAll('.setting-toggle__btn');
-                    settingBtns.forEach(b => {
-                        const isActive = b.dataset.value === value;
-                        b.classList.toggle('active', isActive);
-                        b.setAttribute('aria-checked', String(isActive));
-                    });
-                }
-            });
-        });
-
         // Sensitivity
         wireToggleGroup('Sensitivity', 'sensitivity');
 

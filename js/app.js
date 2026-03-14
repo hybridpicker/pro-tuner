@@ -99,12 +99,10 @@ function init() {
     rebuildAdjustedTunings();
     reselectCurrentTuning();
   });
-  settings.onChange('meterStyle', (val) => meter.setMode(val));
   settings.onChange('sensitivity', (val) => noiseGate.setSensitivity(val));
   settings.onChange('notation', () => updateNoteDisplay());
 
   // Apply stored settings
-  meter.setMode(settings.get('meterStyle'));
   noiseGate.setSensitivity(settings.get('sensitivity'));
 
   // Power button

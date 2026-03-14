@@ -50,13 +50,13 @@
 
         <!-- Instrument & Tuning Selector -->
         <section class="selector" aria-label="Instrument and tuning selection">
-            <button class="selector__toggle" id="selectorToggle" aria-expanded="true">
+            <button class="selector__toggle" id="selectorToggle" aria-expanded="false">
                 <span id="selectorLabel">Instrument &amp; Tuning</span>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="6 9 12 15 18 9" />
                 </svg>
             </button>
-            <div class="selector__panel" id="selectorPanel">
+            <div class="selector__panel" id="selectorPanel" hidden>
                 <div class="selector__instruments" id="instrumentSelector" role="tablist" aria-label="Instrument"></div>
                 <div class="selector__tunings" id="tuningSelector" role="tablist" aria-label="Tuning"></div>
             </div>
@@ -84,10 +84,6 @@
 
         <!-- Tuning Meter -->
         <section class="meter-section" aria-label="Tuning meter">
-            <div class="meter-mode-toggle">
-                <button class="meter-mode-btn active" data-mode="needle" aria-label="Needle meter">Needle</button>
-                <button class="meter-mode-btn" data-mode="strobe" aria-label="Strobe meter">Strobe</button>
-            </div>
             <div class="meter-container">
                 <canvas id="meterCanvas" aria-hidden="true"></canvas>
             </div>
@@ -137,16 +133,6 @@
                             aria-label="A4 frequency in Hz">
                         <span class="setting-a4__unit">Hz</span>
                         <button class="setting-a4__btn" id="a4Plus" aria-label="Increase A4">+</button>
-                    </div>
-                </div>
-                <!-- Meter Style -->
-                <div class="setting-group">
-                    <label class="setting-label">Meter Style</label>
-                    <div class="setting-toggle" role="radiogroup" aria-label="Meter style">
-                        <button class="setting-toggle__btn active" data-value="needle" role="radio"
-                            aria-checked="true">Needle</button>
-                        <button class="setting-toggle__btn" data-value="strobe" role="radio"
-                            aria-checked="false">Strobe</button>
                     </div>
                 </div>
                 <!-- Sensitivity -->
