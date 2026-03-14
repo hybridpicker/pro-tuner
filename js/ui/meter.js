@@ -300,20 +300,16 @@ export class MeterDisplay {
     // Approach target with light smoothing so strobe reacts faster than needle
     this.currentCents += (this.targetCents - this.currentCents) * 0.3 * dt;
 
-    // Phase advances proportional to cents; positive cents → positive phase (moves right)
-    // At |50| cents, roughly 4 full widths per second at 60 fps
-    const speed = this.currentCents * 0.004 * dt;
-
     // Stop when very close to in-tune
-    if (Math.abs(this.currentCents) < 2) {
-      this.strobePhase += 0; // stationary
-    } else {
-      this.strobePhase += speed;
-    }
+    if (Math.abs(this.currentCents) < 1.5) return;
 
-    // Keep phase within reasonable bounds
-    if (this.strobePhase > 1) this.strobePhase -= 1;
-    if (this.strobePhase < -1) this.strobePhase += 1;
+    // Accumulate raw pixel offset — wrapped per-band in draw
+    // ~1.5 px/cent/frame at 60fps gives clearly visible motion without blur
+    this.strobePhase += this.currentCents * 0.05 * dt;
+
+    // Prevent float overflow on long sessions
+    if (this.strobePhase > 100000) this.strobePhase -= 100000;
+    if (this.strobePhase < -100000) this.strobePhase += 100000;
   }
 
   _drawStrobe(w, h) {
@@ -328,8 +324,8 @@ export class MeterDisplay {
     const bandColor = this._lerpColor(c.accent, c.inTune, blendT);
     const darkColor = c.surface;
 
-    // Translate pattern by phase
-    const offset = this.strobePhase * bandWidth * bandCount;
+    // Wrap offset within one band period for seamless looping
+    const offset = ((this.strobePhase % bandWidth) + bandWidth) % bandWidth;
 
     ctx.save();
 

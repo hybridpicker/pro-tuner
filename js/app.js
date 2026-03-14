@@ -19,7 +19,6 @@ import {
   frequencyToNote,
 } from './tunings/tuning-data.js';
 import { MeterDisplay } from './ui/meter.js';
-import { Visualizations } from './ui/waveform.js';
 import { StringDisplay } from './ui/string-display.js';
 import { ThemeManager } from './ui/theme.js';
 import { Settings } from './utils/settings.js';
@@ -43,10 +42,9 @@ const els = {
   stringDisplay:    $('stringDisplay'),
   stringHint:       $('stringHint'),
   status:           $('status'),
-  vizToggle:        $('vizToggle'),
-  vizPanel:         $('vizPanel'),
-  waveformCanvas:   $('waveformCanvas'),
-  pitchHistoryCanvas: $('pitchHistoryCanvas'),
+  selectorToggle:   $('selectorToggle'),
+  selectorPanel:    $('selectorPanel'),
+  selectorLabel:    $('selectorLabel'),
 };
 
 // ──────────────────────────────────────────────────────────────
@@ -56,7 +54,6 @@ const els = {
 const settings     = new Settings();
 const theme        = new ThemeManager();
 const meter        = new MeterDisplay(els.meterCanvas);
-const viz          = new Visualizations(els.waveformCanvas, els.pitchHistoryCanvas);
 const stringDisplay = new StringDisplay(els.stringDisplay);
 const noiseGate    = new NoiseGate();
 
@@ -121,16 +118,14 @@ function init() {
     }
   });
 
-  // Visualization toggle
-  els.vizToggle.addEventListener('click', () => {
-    const expanded = els.vizToggle.getAttribute('aria-expanded') === 'true';
-    els.vizToggle.setAttribute('aria-expanded', String(!expanded));
+  // Selector collapse toggle
+  els.selectorToggle.addEventListener('click', () => {
+    const expanded = els.selectorToggle.getAttribute('aria-expanded') === 'true';
+    els.selectorToggle.setAttribute('aria-expanded', String(!expanded));
     if (expanded) {
-      els.vizPanel.setAttribute('hidden', '');
-      viz.hide();
+      els.selectorPanel.setAttribute('hidden', '');
     } else {
-      els.vizPanel.removeAttribute('hidden');
-      viz.show();
+      els.selectorPanel.removeAttribute('hidden');
     }
   });
 
@@ -152,7 +147,6 @@ function init() {
   // Window resize
   window.addEventListener('resize', () => {
     meter.resize();
-    viz.resize();
   });
 
   // Register service worker
@@ -242,6 +236,13 @@ function renderTuningSelector(instrument) {
   }
 }
 
+function updateSelectorLabel() {
+  if (!els.selectorLabel) return;
+  const instLabel = currentInstrument.charAt(0).toUpperCase() + currentInstrument.slice(1);
+  const tuningLabel = currentTuning ? currentTuning.name : '';
+  els.selectorLabel.textContent = tuningLabel ? `${instLabel} — ${tuningLabel}` : instLabel;
+}
+
 function selectTuning(tuningId, save = true) {
   currentTuningId = tuningId;
   if (save) settings.set('lastTuning', tuningId);
@@ -261,6 +262,8 @@ function selectTuning(tuningId, save = true) {
     stringDisplay.reset();
     els.stringHint.style.display = 'none';
   }
+
+  updateSelectorLabel();
 }
 
 function createSelectorButton(label, value, isActive) {
@@ -462,13 +465,6 @@ function handlePitchResult(data) {
   const levelPct = Math.min(100, Math.max(0, levelDb * 2));
   els.inputLevel.style.width = `${levelPct}%`;
 
-  // Update waveform if visualizations are visible (always, even below noise gate)
-  if (viz.isVisible && analyser) {
-    const timeDomainData = new Float32Array(analyser.fftSize);
-    analyser.getFloatTimeDomainData(timeDomainData);
-    viz.updateWaveform(timeDomainData);
-  }
-
   // Noise gate check
   if (!noiseGate.isAboveThreshold(rms) || frequency <= 0) {
     return;
@@ -562,10 +558,6 @@ function handlePitchResult(data) {
     inTuneConfirmed = false;
   }
 
-  // Pitch history
-  if (viz.isVisible) {
-    viz.updatePitchHistory(displayFreq, now);
-  }
 }
 
 function updateNoteDisplay() {

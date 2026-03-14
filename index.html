@@ -50,8 +50,16 @@
 
         <!-- Instrument & Tuning Selector -->
         <section class="selector" aria-label="Instrument and tuning selection">
-            <div class="selector__instruments" id="instrumentSelector" role="tablist" aria-label="Instrument"></div>
-            <div class="selector__tunings" id="tuningSelector" role="tablist" aria-label="Tuning"></div>
+            <button class="selector__toggle" id="selectorToggle" aria-expanded="true">
+                <span id="selectorLabel">Instrument &amp; Tuning</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="6 9 12 15 18 9" />
+                </svg>
+            </button>
+            <div class="selector__panel" id="selectorPanel">
+                <div class="selector__instruments" id="instrumentSelector" role="tablist" aria-label="Instrument"></div>
+                <div class="selector__tunings" id="tuningSelector" role="tablist" aria-label="Tuning"></div>
+            </div>
         </section>
 
         <!-- Power Button -->
@@ -92,24 +100,6 @@
                     <span>MIN</span>
                     <span>INPUT LEVEL</span>
                     <span>MAX</span>
-                </div>
-            </div>
-        </section>
-
-        <!-- Visualizations (collapsible) -->
-        <section class="visualizations" id="visualizations" aria-label="Audio visualizations">
-            <button class="visualizations__toggle" id="vizToggle" aria-expanded="false">
-                <span>Visualizations</span>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="6 9 12 15 18 9" />
-                </svg>
-            </button>
-            <div class="visualizations__panel" id="vizPanel" hidden>
-                <div class="viz-canvas-wrapper">
-                    <canvas id="waveformCanvas" aria-label="Waveform display"></canvas>
-                </div>
-                <div class="viz-canvas-wrapper">
-                    <canvas id="pitchHistoryCanvas" aria-label="Pitch history"></canvas>
                 </div>
             </div>
         </section>
