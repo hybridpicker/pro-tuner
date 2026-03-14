@@ -12,8 +12,6 @@ export class ThemeManager {
 
         if (saved === 'dark' || saved === 'light') {
             this.theme = saved;
-        } else if (window.matchMedia('(prefers-color-scheme: light)').matches) {
-            this.theme = 'light';
         }
 
         this._apply();
