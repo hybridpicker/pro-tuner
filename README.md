@@ -9,7 +9,7 @@ Professional chromatic instrument tuner — runs in the browser, works offline.
 ## Features
 
 - **YIN pitch detection** — accurate to ±0.5 cent across 50–2000 Hz
-- **Needle & Strobe meter** — spring-physics needle or Peterson-style scrolling strobe
+- **Needle meter** — spring-physics animated needle with LED indicators
 - **Multi-instrument** — Guitar (11 tunings), Bass, Ukulele, Violin, Viola, Banjo, Chromatic
 - **Reference tones** — tap any string card to hear it
 - **Quick-tune lock** — double-tap a string to lock the detector to it
@@ -30,7 +30,7 @@ Vanilla HTML + CSS + JS — no framework, no build step, no dependencies. Total 
 | `js/app.js` | Main wiring — audio engine → UI |
 | `js/audio/` | AudioWorklet YIN detector, noise gate, tone generator |
 | `js/tunings/tuning-data.js` | All instrument tunings |
-| `js/ui/` | Canvas meter (needle + strobe), string cards, theme |
+| `js/ui/` | Canvas needle meter, string cards, theme |
 | `js/utils/settings.js` | Settings with localStorage persistence |
 | `sw.js` | Service worker (cache-first PWA) |
 
