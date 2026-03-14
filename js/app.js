@@ -497,12 +497,20 @@ function handlePitchResult(data) {
     let matchResult;
 
     if (lockedIdx >= 0 && lockedIdx < currentTuning.strings.length) {
-      // Quick-tune: locked to specific string
+      // Quick-tune: locked to specific string — always use string cents
       const lockedString = currentTuning.strings[lockedIdx];
       cents = 1200 * Math.log2(displayFreq / lockedString.freq);
       matchResult = { string: lockedString, cents };
     } else {
       matchResult = findClosestString(displayFreq, currentTuning);
+
+      // If the closest string is more than 50 cents away the note isn't one
+      // of the tuning's strings — fall back to chromatic cents so the meter
+      // still reads meaningfully for any played note.
+      if (matchResult && Math.abs(matchResult.cents) > 50) {
+        matchResult = null;
+      }
+
       cents = matchResult ? matchResult.cents : noteInfo.cents;
     }
 
@@ -510,6 +518,8 @@ function handlePitchResult(data) {
       // Highlight the closest string card
       const stringIdx = currentTuning.strings.indexOf(matchResult.string);
       stringDisplay.setActive(stringIdx);
+    } else {
+      stringDisplay.setActive(-1);
     }
   } else {
     // Chromatic mode
