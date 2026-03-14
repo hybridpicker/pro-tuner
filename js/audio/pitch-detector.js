@@ -17,7 +17,7 @@ export class PitchDetector {
   constructor(sampleRate, bufferSize = 4096) {
     this.sampleRate = sampleRate;
     this.bufferSize = bufferSize;
-    this.threshold = 0.2;
+    this.threshold = 0.11;
 
     // Frequency range: 50Hz (bass low B) to 2000Hz (mandolin upper range)
     this.minFrequency = 50;
@@ -73,6 +73,14 @@ export class PitchDetector {
   detect(audioBuffer) {
     const size = audioBuffer.length;
 
+    // DC removal
+    let dcSum = 0;
+    for (let i = 0; i < size; i++) dcSum += audioBuffer[i];
+    const dcMean = dcSum / size;
+    if (Math.abs(dcMean) > 1e-6) {
+      for (let i = 0; i < size; i++) audioBuffer[i] -= dcMean;
+    }
+
     // Clamp maxLag to half the available buffer
     const effectiveMaxLag = Math.min(this.maxLag, Math.floor(size / 2));
     if (effectiveMaxLag <= this.minLag) return null;
@@ -103,21 +111,23 @@ export class PitchDetector {
     const cmndfValue = this._cmndfBuffer[bestLag];
     const confidence = 1 - cmndfValue;
 
-    // Step 5: Octave jump correction
+    // Step 5: Octave jump correction (both directions)
     let correctedFrequency = rawFrequency;
     if (this._smoothedFrequency > 0) {
       const ratio = rawFrequency / this._smoothedFrequency;
       if (ratio > 1.8 && ratio < 2.2) {
         correctedFrequency = rawFrequency / 2;
+      } else if (ratio > 0.45 && ratio < 0.55) {
+        correctedFrequency = rawFrequency * 2;
       }
     }
 
     // Step 6: Median filtering
     const medianFrequency = this._medianFilter(correctedFrequency);
 
-    // Step 7: Adaptive EMA smoothing
-    // Lower frequencies get faster tracking, higher frequencies get more smoothing
-    const alpha = Math.max(0.08, Math.min(0.5, 30 / medianFrequency));
+    // Step 7: Confidence-weighted EMA smoothing
+    const baseAlpha = Math.max(0.08, Math.min(0.5, 30 / medianFrequency));
+    const alpha = baseAlpha + (1 - baseAlpha) * confidence * 0.4;
 
     if (this._smoothedFrequency === 0) {
       this._smoothedFrequency = medianFrequency;

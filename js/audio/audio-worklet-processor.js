@@ -101,7 +101,7 @@ class PitchProcessor extends AudioWorkletProcessor {
     super();
 
     // Detection parameters
-    this.threshold = 0.2;
+    this.threshold = 0.11;
     this.minFrequency = 50;
     this.maxFrequency = 2000;
 
@@ -203,20 +203,22 @@ class PitchProcessor extends AudioWorkletProcessor {
       if (result) {
         let freq = result.frequency;
 
-        // Octave jump correction: if frequency suddenly doubles relative to
-        // a stable previous reading, prefer the sub-octave (fundamental)
+        // Octave jump correction: catch both upward (×2) and downward (÷2) jumps
         if (this._smoothedFrequency > 0) {
           const ratio = freq / this._smoothedFrequency;
           if (ratio > 1.8 && ratio < 2.2) {
-            freq = freq / 2;
+            freq = freq / 2;   // jumped an octave up — take sub-octave
+          } else if (ratio > 0.45 && ratio < 0.55) {
+            freq = freq * 2;   // jumped an octave down — take upper octave
           }
         }
 
         // Median filter
         const medianFreq = this._medianFilter(freq);
 
-        // Adaptive EMA smoothing
-        const alpha = Math.max(0.08, Math.min(0.5, 30 / medianFreq));
+        // Confidence-weighted EMA: high confidence → faster response
+        const baseAlpha = Math.max(0.08, Math.min(0.5, 30 / medianFreq));
+        const alpha = baseAlpha + (1 - baseAlpha) * result.confidence * 0.4;
         if (this._smoothedFrequency === 0) {
           this._smoothedFrequency = medianFreq;
         } else {
@@ -292,12 +294,27 @@ class PitchProcessor extends AudioWorkletProcessor {
   }
 
   /**
+   * Remove DC offset from buffer in-place by subtracting the mean.
+   */
+  _removeDC(buffer, size) {
+    let sum = 0;
+    for (let i = 0; i < size; i++) sum += buffer[i];
+    const mean = sum / size;
+    if (Math.abs(mean) > 1e-6) {
+      for (let i = 0; i < size; i++) buffer[i] -= mean;
+    }
+  }
+
+  /**
    * Run YIN pitch detection on the current analysis buffer.
    * @returns {{ frequency: number, confidence: number } | null}
    */
   _detectPitch() {
     const buffer = this.analysisBuffer;
     const size = this.analysisBufferSize;
+
+    // DC removal before analysis
+    this._removeDC(buffer, size);
 
     // Clamp max lag to half the buffer
     const effectiveMaxLag = Math.min(this.maxLag, Math.floor(size / 2));
