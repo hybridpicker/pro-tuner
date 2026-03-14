@@ -11,6 +11,7 @@ Professional chromatic instrument tuner — runs in the browser, works offline.
 - **YIN pitch detection** — accurate to ±0.5 cent across 50–2000 Hz
 - **Needle meter** — spring-physics animated needle with LED indicators
 - **Multi-instrument** — Guitar (11 tunings), Bass, Ukulele, Violin, Viola, Banjo, Chromatic
+- **Smart string matching** — cents calculated against nearest string; falls back to chromatic for notes outside any string's range (>50 cent)
 - **Collapsible selector** — instrument & tuning picker folds away to keep focus on the meter
 - **Reference tones** — tap any string card to hear it
 - **Quick-tune lock** — double-tap a string to lock the detector to it
