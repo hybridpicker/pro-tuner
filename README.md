@@ -4,7 +4,7 @@ Professional chromatic instrument tuner — runs in the browser, works offline.
 
 **[tuner.schoensgibl.com](https://tuner.schoensgibl.com)**
 
-https://github.com/hybridpicker/pro-tuner/releases/download/v2.1.2/pro-tuner.mp4
+https://github.com/hybridpicker/pro-tuner/raw/main/assets/demo.mp4
 
 ---
 
