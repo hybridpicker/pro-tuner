@@ -203,17 +203,14 @@ class PitchProcessor extends AudioWorkletProcessor {
       if (result) {
         let freq = result.frequency;
 
-        // Octave/harmonic jump correction: ×2/÷2 and ×3/÷3
+        // Octave jump correction: ×2/÷2 only
+        // (÷3/×3 removed — ratio ≈ 3 is indistinguishable from E2→B3 note change)
         if (this._smoothedFrequency > 0) {
           const ratio = freq / this._smoothedFrequency;
           if (ratio > 1.8 && ratio < 2.2) {
             freq = freq / 2;   // jumped an octave up — take sub-octave
           } else if (ratio > 0.45 && ratio < 0.55) {
             freq = freq * 2;   // jumped an octave down — take upper octave
-          } else if (ratio > 2.7 && ratio < 3.3) {
-            freq = freq / 3;   // 3rd harmonic lock — take fundamental
-          } else if (ratio > 0.30 && ratio < 0.38) {
-            freq = freq * 3;   // sub-third — take upper
           }
         }
 
