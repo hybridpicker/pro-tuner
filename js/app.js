@@ -416,7 +416,7 @@ async function calibrateNoiseFloor() {
   if (_calibrationSamples.length > 0) {
     const sorted = _calibrationSamples.slice().sort((a, b) => a - b);
     const p75 = sorted[Math.floor(sorted.length * 0.75)];
-    noiseGate.setThreshold(p75 * 4);
+    noiseGate.setThreshold(p75 * 2.5);
   }
   // If no samples arrived, NoiseGate falls back to _presetThreshold automatically
   _calibrationSamples = [];
