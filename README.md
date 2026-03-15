@@ -33,7 +33,7 @@ Vanilla HTML + CSS + JS — no framework, no build step, no dependencies. Total 
 | `js/app.js` | Main wiring — audio engine → UI |
 | `js/audio/audio-worklet-processor.js` | AudioWorklet YIN detector (audio thread) |
 | `js/audio/pitch-detector.js` | YIN fallback for older browsers |
-| `js/audio/noise-gate.js` | RMS noise gate — low/medium/high presets |
+| `js/audio/noise-gate.js` | RMS noise gate — low/medium/high presets, 150ms hold-open, auto-calibration |
 | `js/audio/tone-generator.js` | Reference tone playback |
 | `js/tunings/tuning-data.js` | All instrument tunings, A4 recalculation |
 | `js/ui/meter.js` | Canvas needle meter with spring physics |
@@ -53,7 +53,7 @@ Vanilla HTML + CSS + JS — no framework, no build step, no dependencies. Total 
 7. Confidence-weighted EMA smoothing — high-confidence readings update the display faster
 8. Harmonic correction: ×2/÷2 octave jumps and ×3/÷3 harmonic lock (e.g. low E → 3rd harmonic)
 9. Confidence filter: frames below 0.25 confidence discarded
-10. Noise gate with 150ms hold-open (sustain dropout prevention) and auto noise floor calibration on start
+10. Noise gate with 150ms hold-open (sustain dropout prevention) and auto noise floor calibration on start (p75 × 2.5); presets: low 0.001 / medium 0.004 / high 0.015
 11. In-tune LED hysteresis: enters at < 5¢, exits at ≥ 8¢
 12. Results throttled to ~60 fps for UI updates
 
