@@ -47,12 +47,15 @@ Vanilla HTML + CSS + JS — no framework, no build step, no dependencies. Total 
 1. `getUserMedia` — echo cancellation, AGC and noise suppression **disabled**
 2. **AudioWorklet** runs YIN detection on the audio thread (falls back to ScriptProcessor)
 3. YIN steps: difference function → cumulative mean normalized difference → absolute threshold (0.11) → parabolic interpolation
-4. Adaptive buffer: 8192 samples below 300 Hz, 4096 above
+4. Adaptive buffer: 8192 samples below 200 Hz (low strings), 4096 above
 5. DC offset removal before each analysis window
 6. Median filter (ring buffer of 5) removes outliers
 7. Confidence-weighted EMA smoothing — high-confidence readings update the display faster
-8. Octave correction catches jumps both up (×2) and down (÷2)
-9. Results throttled to ~60 fps for UI updates
+8. Harmonic correction: ×2/÷2 octave jumps and ×3/÷3 harmonic lock (e.g. low E → 3rd harmonic)
+9. Confidence filter: frames below 0.25 confidence discarded
+10. Noise gate with 150ms hold-open (sustain dropout prevention) and auto noise floor calibration on start
+11. In-tune LED hysteresis: enters at < 5¢, exits at ≥ 8¢
+12. Results throttled to ~60 fps for UI updates
 
 ## Local Development
 
