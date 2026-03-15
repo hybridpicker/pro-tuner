@@ -149,8 +149,8 @@ class PitchProcessor extends AudioWorkletProcessor {
    * @param {number} frequency - Last detected frequency
    */
   _adaptBufferSize(frequency) {
-    // Use 8192 for frequencies below 300Hz, 4096 for higher
-    const newSize = frequency > 0 && frequency >= 300 ? 4096 : 8192;
+    // Use 8192 for frequencies below 200Hz (low strings), 4096 for higher
+    const newSize = frequency > 0 && frequency >= 200 ? 4096 : 8192;
 
     if (newSize !== this.analysisBufferSize) {
       // Require 3 consistent readings before switching (hysteresis)
@@ -203,13 +203,17 @@ class PitchProcessor extends AudioWorkletProcessor {
       if (result) {
         let freq = result.frequency;
 
-        // Octave jump correction: catch both upward (×2) and downward (÷2) jumps
+        // Octave/harmonic jump correction: ×2/÷2 and ×3/÷3
         if (this._smoothedFrequency > 0) {
           const ratio = freq / this._smoothedFrequency;
           if (ratio > 1.8 && ratio < 2.2) {
             freq = freq / 2;   // jumped an octave up — take sub-octave
           } else if (ratio > 0.45 && ratio < 0.55) {
             freq = freq * 2;   // jumped an octave down — take upper octave
+          } else if (ratio > 2.7 && ratio < 3.3) {
+            freq = freq / 3;   // 3rd harmonic lock — take fundamental
+          } else if (ratio > 0.30 && ratio < 0.38) {
+            freq = freq * 3;   // sub-third — take upper
           }
         }
 

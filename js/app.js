@@ -81,6 +81,11 @@ let adjustedTunings   = null;  // All tunings recalculated for current A4
 // In-tune confirmation state
 let inTuneStartTime   = 0;
 let inTuneConfirmed   = false;
+let inTuneState       = false; // hysteresis: enters at <5¢, exits at ≥8¢
+
+// Noise floor calibration state
+let _calibrating        = false;
+let _calibrationSamples = [];
 
 // ──────────────────────────────────────────────────────────────
 //  Initialization
@@ -333,13 +338,18 @@ async function startTuner() {
     isRunning = true;
     inTuneStartTime = 0;
     inTuneConfirmed = false;
+    inTuneState = false;
 
     els.powerBtn.classList.add('active');
     meter.start();
-    setStatus('Listening — play a string', 'listening');
 
     // Request wake lock
     requestWakeLock();
+
+    // Calibrate noise floor for 300ms before listening
+    await calibrateNoiseFloor();
+
+    setStatus('Listening — play a string', 'listening');
 
   } catch (err) {
     console.error('Failed to start tuner:', err);
@@ -395,6 +405,23 @@ function startScriptProcessorFallback() {
   };
 }
 
+async function calibrateNoiseFloor() {
+  _calibrating = true;
+  _calibrationSamples = [];
+  setStatus('Calibrating…', 'listening');
+
+  await new Promise(resolve => setTimeout(resolve, 300));
+
+  _calibrating = false;
+  if (_calibrationSamples.length > 0) {
+    const sorted = _calibrationSamples.slice().sort((a, b) => a - b);
+    const p75 = sorted[Math.floor(sorted.length * 0.75)];
+    noiseGate.setThreshold(p75 * 4);
+  }
+  // If no samples arrived, NoiseGate falls back to _presetThreshold automatically
+  _calibrationSamples = [];
+}
+
 function stopTuner() {
   // Stop reference tone
   if (toneGenerator && toneGenerator.isPlaying()) {
@@ -428,6 +455,7 @@ function stopTuner() {
   isRunning = false;
   inTuneStartTime = 0;
   inTuneConfirmed = false;
+  inTuneState = false;
 
   els.powerBtn.classList.remove('active');
   meter.stop();
@@ -456,17 +484,26 @@ let lastDisplayUpdate = 0;
 function handlePitchResult(data) {
   if (!isRunning) return;
 
-  const { frequency, rms } = data;
+  const { frequency, rms, confidence } = data;
 
   // Update input level meter
   const levelDb = rms > 0 ? 20 * Math.log10(rms) + 60 : 0;
   const levelPct = Math.min(100, Math.max(0, levelDb * 2));
   els.inputLevel.style.width = `${levelPct}%`;
 
+  // Collect calibration samples during startup phase
+  if (_calibrating) {
+    if (rms > 0) _calibrationSamples.push(rms);
+    return;
+  }
+
   // Noise gate check
   if (!noiseGate.isAboveThreshold(rms) || frequency <= 0) {
     return;
   }
+
+  // Skip low-confidence frames (noisy/uncertain detection)
+  if (confidence < 0.25) return;
 
   // Throttle display updates to ~60fps
   const now = performance.now();
@@ -535,17 +572,20 @@ function handlePitchResult(data) {
   // Update meter
   meter.update(cents);
 
-  // In-tune detection
-  const isInTune = Math.abs(cents) < 5;
-  const isVeryInTune = Math.abs(cents) < 2;
+  // In-tune detection with hysteresis: enter at <5¢, exit at ≥8¢
+  const absCents = Math.abs(cents);
+  if (!inTuneState && absCents < 5) inTuneState = true;
+  else if (inTuneState && absCents >= 8) inTuneState = false;
 
-  els.cents.className = 'note-display__cents ' + (isInTune ? 'in-tune' : 'off-tune');
+  const isVeryInTune = absCents < 2;
+
+  els.cents.className = 'note-display__cents ' + (inTuneState ? 'in-tune' : 'off-tune');
 
   const noteDisplayEl = document.querySelector('.note-display');
-  noteDisplayEl.classList.toggle('in-tune', isInTune);
+  noteDisplayEl.classList.toggle('in-tune', inTuneState);
 
   // Status text
-  if (isInTune) {
+  if (inTuneState) {
     setStatus('In tune', 'active');
   } else if (cents < 0) {
     setStatus('Flat — tighten string', '');

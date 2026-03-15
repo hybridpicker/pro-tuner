@@ -15,8 +15,10 @@ export class NoiseGate {
   };
 
   constructor() {
+    this._presetThreshold = NoiseGate.THRESHOLDS.medium;
     this._threshold = NoiseGate.THRESHOLDS.medium;
     this._level = 'medium';
+    this._holdUntil = 0; // timestamp for 150ms hold-open after signal drops
   }
 
   /**
@@ -31,16 +33,35 @@ export class NoiseGate {
       );
     }
     this._level = level;
+    this._presetThreshold = threshold;
     this._threshold = threshold;
+    this._holdUntil = 0;
+  }
+
+  /**
+   * Override the noise floor threshold (e.g. from auto-calibration).
+   * Never goes below the user's preset threshold.
+   * @param {number} value - RMS threshold value
+   */
+  setThreshold(value) {
+    this._threshold = Math.max(this._presetThreshold, value);
+    this._holdUntil = 0;
   }
 
   /**
    * Check if the signal RMS is above the noise gate threshold.
+   * Holds the gate open for 150ms after the signal drops below threshold
+   * to prevent sustain dropout during natural note decay.
    * @param {number} rms - Root mean square of the audio signal
    * @returns {boolean} true if signal is loud enough to pass through
    */
   isAboveThreshold(rms) {
-    return rms >= this._threshold;
+    const now = performance.now();
+    if (rms >= this._threshold) {
+      this._holdUntil = now + 150;
+      return true;
+    }
+    return now < this._holdUntil;
   }
 
   /**

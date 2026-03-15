@@ -111,7 +111,7 @@ export class PitchDetector {
     const cmndfValue = this._cmndfBuffer[bestLag];
     const confidence = 1 - cmndfValue;
 
-    // Step 5: Octave jump correction (both directions)
+    // Step 5: Octave/harmonic jump correction: ×2/÷2 and ×3/÷3
     let correctedFrequency = rawFrequency;
     if (this._smoothedFrequency > 0) {
       const ratio = rawFrequency / this._smoothedFrequency;
@@ -119,6 +119,10 @@ export class PitchDetector {
         correctedFrequency = rawFrequency / 2;
       } else if (ratio > 0.45 && ratio < 0.55) {
         correctedFrequency = rawFrequency * 2;
+      } else if (ratio > 2.7 && ratio < 3.3) {
+        correctedFrequency = rawFrequency / 3;   // 3rd harmonic lock — take fundamental
+      } else if (ratio > 0.30 && ratio < 0.38) {
+        correctedFrequency = rawFrequency * 3;   // sub-third — take upper
       }
     }
 
