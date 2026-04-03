@@ -1,30 +1,62 @@
 {
+  "id": "/",
   "name": "Pro Tuner",
-  "short_name": "Tuner",
-  "description": "Professional Chromatic Instrument Tuner",
+  "short_name": "Pro Tuner",
+  "description": "Free, ad-free professional chromatic tuner for guitar, bass, ukulele, violin and more. Works offline. ±0.5 cent accuracy.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#1a1c20",
   "theme_color": "#e8a838",
-  "orientation": "portrait",
+  "orientation": "portrait-primary",
+  "lang": "en",
   "categories": ["music", "utilities"],
   "icons": [
+    {
+      "src": "/icons/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    },
     {
       "src": "/icons/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "/icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
-      "src": "/icons/favicon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml"
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Tune Guitar",
+      "short_name": "Guitar",
+      "description": "Open in guitar standard tuning",
+      "url": "/?instrument=guitar",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Chromatic Mode",
+      "short_name": "Chromatic",
+      "description": "Open in chromatic mode",
+      "url": "/?instrument=chromatic",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
     }
   ]
 }

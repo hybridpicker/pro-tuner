@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Full bleed background (maskable: entire canvas is background) -->
+  <rect width="512" height="512" fill="#1a1c20"/>
+
+  <!-- Subtle radial glow behind icon -->
+  <radialGradient id="bgGlow" cx="50%" cy="50%" r="50%">
+    <stop offset="0%" stop-color="#e8a838" stop-opacity="0.08"/>
+    <stop offset="100%" stop-color="#e8a838" stop-opacity="0"/>
+  </radialGradient>
+  <rect width="512" height="512" fill="url(#bgGlow)"/>
+
+  <defs>
+    <linearGradient id="forkGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f0c050"/>
+      <stop offset="100%" stop-color="#e8a838"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Icon content scaled to fit within the 80% safe zone (102px padding each side) -->
+  <!-- The tuning fork, centered, filling roughly 60% of canvas -->
+  <g transform="translate(256, 256)">
+    <!-- Fork shape, centered -->
+    <path d="M208 64 a24 24 0 0 1 24 24v160a24 24 0 0 1-24 24h-8v120a40 40 0 0 1-40 40h-16a40 40 0 0 1-40-40V272h-8a24 24 0 0 1-24-24V88a24 24 0 0 1 24-24h8V48a16 16 0 0 1 32 0v16h32V48a16 16 0 0 1 32 0v16h8z"
+          fill="url(#forkGrad)"
+          transform="translate(-168, -216) scale(1.0)"/>
+  </g>
+</svg>

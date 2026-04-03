@@ -1,0 +1,119 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1a1c20"/>
+      <stop offset="100%" stop-color="#22262d"/>
+    </linearGradient>
+    <linearGradient id="accentGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f0c050"/>
+      <stop offset="100%" stop-color="#e8a838"/>
+    </linearGradient>
+    <linearGradient id="needleGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#e8a838" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#e8a838"/>
+      <stop offset="100%" stop-color="#e8a838" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="softGlow">
+      <feGaussianBlur stdDeviation="12" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bgGrad)"/>
+
+  <!-- Subtle grid lines -->
+  <g stroke="#ffffff" stroke-opacity="0.03" stroke-width="1">
+    <line x1="0" y1="105" x2="1200" y2="105"/>
+    <line x1="0" y1="210" x2="1200" y2="210"/>
+    <line x1="0" y1="315" x2="1200" y2="315"/>
+    <line x1="0" y1="420" x2="1200" y2="420"/>
+    <line x1="0" y1="525" x2="1200" y2="525"/>
+    <line x1="200" y1="0" x2="200" y2="630"/>
+    <line x1="400" y1="0" x2="400" y2="630"/>
+    <line x1="600" y1="0" x2="600" y2="630"/>
+    <line x1="800" y1="0" x2="800" y2="630"/>
+    <line x1="1000" y1="0" x2="1000" y2="630"/>
+  </g>
+
+  <!-- Meter arc background (right side decorative) -->
+  <g transform="translate(880, 315)">
+    <!-- Arc track -->
+    <path d="M -200,0 A 200,200 0 0,1 200,0" fill="none" stroke="#2a2e35" stroke-width="3"/>
+    <!-- Tick marks -->
+    <g stroke="#3a3f48" stroke-width="2">
+      <line x1="-198" y1="0" x2="-185" y2="0" transform="rotate(-75, 0, 0)"/>
+      <line x1="-198" y1="0" x2="-185" y2="0" transform="rotate(-60, 0, 0)"/>
+      <line x1="-198" y1="0" x2="-185" y2="0" transform="rotate(-45, 0, 0)"/>
+      <line x1="-198" y1="0" x2="-185" y2="0" transform="rotate(-30, 0, 0)"/>
+      <line x1="-198" y1="0" x2="-185" y2="0" transform="rotate(-15, 0, 0)"/>
+      <line x1="-198" y1="0" x2="-180" y2="0" transform="rotate(0, 0, 0)"/>
+      <line x1="-198" y1="0" x2="-185" y2="0" transform="rotate(15, 0, 0)"/>
+      <line x1="-198" y1="0" x2="-185" y2="0" transform="rotate(30, 0, 0)"/>
+      <line x1="-198" y1="0" x2="-185" y2="0" transform="rotate(45, 0, 0)"/>
+      <line x1="-198" y1="0" x2="-185" y2="0" transform="rotate(60, 0, 0)"/>
+      <line x1="-198" y1="0" x2="-185" y2="0" transform="rotate(75, 0, 0)"/>
+    </g>
+    <!-- Center needle (slightly off-center, "almost in tune") -->
+    <line x1="0" y1="0" x2="-6" y2="-188" stroke="url(#accentGrad)" stroke-width="3" stroke-linecap="round" filter="url(#glow)" transform="rotate(5, 0, 0)"/>
+    <!-- Needle hub -->
+    <circle cx="0" cy="0" r="10" fill="#2a2e35" stroke="#e8a838" stroke-width="2"/>
+    <circle cx="0" cy="0" r="4" fill="#e8a838"/>
+    <!-- In-tune indicator dot (center, active) -->
+    <circle cx="0" cy="-195" r="5" fill="#00c853" filter="url(#glow)"/>
+    <!-- Label -->
+    <text x="0" y="25" text-anchor="middle" font-family="monospace" font-size="14" fill="#666" letter-spacing="3">CENTS</text>
+    <text x="-170" y="20" text-anchor="middle" font-family="monospace" font-size="12" fill="#555">-50</text>
+    <text x="170" y="20" text-anchor="middle" font-family="monospace" font-size="12" fill="#555">+50</text>
+    <text x="0" y="20" text-anchor="middle" font-family="monospace" font-size="12" fill="#888">0</text>
+  </g>
+
+  <!-- Left side: Tuning fork icon -->
+  <g transform="translate(155, 200)" filter="url(#softGlow)">
+    <!-- Scaled-up tuning fork matching favicon -->
+    <defs>
+      <linearGradient id="forkGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#f0c050"/>
+        <stop offset="100%" stop-color="#e8a838"/>
+      </linearGradient>
+    </defs>
+    <path d="M208 64 a24 24 0 0 1 24 24v160a24 24 0 0 1-24 24h-8v120a40 40 0 0 1-40 40h-16a40 40 0 0 1-40-40V272h-8a24 24 0 0 1-24-24V88a24 24 0 0 1 24-24h8V48a16 16 0 0 1 32 0v16h32V48a16 16 0 0 1 32 0v16h8z"
+          fill="url(#forkGrad)"
+          transform="translate(-128, -150) scale(0.75)"/>
+  </g>
+
+  <!-- Main title -->
+  <text x="310" y="258" font-family="'JetBrains Mono', 'Courier New', monospace" font-size="88" font-weight="700" fill="#f5f5f5" letter-spacing="-2">PRO</text>
+  <text x="310" y="355" font-family="'JetBrains Mono', 'Courier New', monospace" font-size="88" font-weight="700" fill="url(#accentGrad)" letter-spacing="-2">TUNER</text>
+
+  <!-- Divider line -->
+  <rect x="310" y="375" width="380" height="2" fill="#e8a838" opacity="0.4"/>
+
+  <!-- Subtitle -->
+  <text x="310" y="415" font-family="'DM Sans', 'Helvetica Neue', sans-serif" font-size="24" fill="#8a9099" letter-spacing="2">PROFESSIONAL CHROMATIC TUNER</text>
+
+  <!-- Feature pills -->
+  <g transform="translate(310, 450)">
+    <!-- Free & Ad-free -->
+    <rect x="0" y="0" width="130" height="32" rx="16" fill="#2a2e35" stroke="#3a3f48" stroke-width="1"/>
+    <text x="65" y="21" text-anchor="middle" font-family="'DM Sans', sans-serif" font-size="13" fill="#e8a838">Ad-free</text>
+
+    <!-- Offline -->
+    <rect x="144" y="0" width="110" height="32" rx="16" fill="#2a2e35" stroke="#3a3f48" stroke-width="1"/>
+    <text x="199" y="21" text-anchor="middle" font-family="'DM Sans', sans-serif" font-size="13" fill="#8a9099">Offline PWA</text>
+
+    <!-- Accuracy -->
+    <rect x="268" y="0" width="145" height="32" rx="16" fill="#2a2e35" stroke="#3a3f48" stroke-width="1"/>
+    <text x="340" y="21" text-anchor="middle" font-family="'DM Sans', sans-serif" font-size="13" fill="#8a9099">±0.5¢ accuracy</text>
+  </g>
+
+  <!-- Bottom URL -->
+  <text x="600" y="600" text-anchor="middle" font-family="'JetBrains Mono', monospace" font-size="16" fill="#3a3f48" letter-spacing="2">tuner.schoensgibl.com</text>
+
+  <!-- Amber accent bar at top -->
+  <rect x="0" y="0" width="1200" height="4" fill="url(#accentGrad)"/>
+</svg>
