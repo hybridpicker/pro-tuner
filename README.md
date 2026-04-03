@@ -93,4 +93,4 @@ Nginx serves the directory directly with `Permissions-Policy: microphone=(self)`
 
 ## License
 
-MIT — made with care by [Lukas Schönsgibl](https://schoensgibl.com), guitarist and music teacher.
+MIT — made with care by [Lukas Schönsgibl](https://schoensgibl.com), music school director, instrumental pedagogue, and guitarist.
