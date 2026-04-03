@@ -394,7 +394,7 @@ function startScriptProcessorFallback() {
     const rms = Math.sqrt(sumSq / buffer.length);
 
     // Run pitch detection
-    const result = pitchDetector.detect(buffer);
+    const result = pitchDetector.detect(buffer, rms);
 
     handlePitchResult({
       type: 'pitch',

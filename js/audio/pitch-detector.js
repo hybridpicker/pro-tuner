@@ -40,6 +40,9 @@ export class PitchDetector {
 
     // Adaptive EMA smoothing state
     this._smoothedFrequency = 0;
+
+    // Onset detection state
+    this._prevRms = 0;
   }
 
   /**
@@ -70,8 +73,17 @@ export class PitchDetector {
    *   frequency in Hz, confidence 0-1 (higher = more confident), or null if
    *   no reliable pitch found.
    */
-  detect(audioBuffer) {
+  detect(audioBuffer, rms = 0) {
     const size = audioBuffer.length;
+
+    // Onset detection: RMS jump > 3× indicates a new note attack
+    const isOnset = this._prevRms > 0 && rms > this._prevRms * 3;
+    this._prevRms = rms;
+    if (isOnset) {
+      this._smoothedFrequency = 0;
+      this._medianCount = 0;
+      this._medianIndex = 0;
+    }
 
     // DC removal
     let dcSum = 0;
@@ -92,8 +104,30 @@ export class PitchDetector {
     this._cumulativeMeanNormalizedDifference(effectiveMaxLag);
 
     // Step 3: Absolute threshold - find the first lag below threshold
-    const bestLag = this._absoluteThreshold(effectiveMaxLag);
+    let bestLag = this._absoluteThreshold(effectiveMaxLag);
     if (bestLag === -1) return null;
+
+    // Step 3b: Sub-octave preference — check if the fundamental is an octave
+    // below the detected lag. Guitar low strings often have a stronger 2nd
+    // harmonic, causing YIN to lock onto lag/2 (octave above fundamental).
+    const subOctaveLag = bestLag * 2;
+    if (subOctaveLag + 2 < effectiveMaxLag) {
+      // Search for a CMNDF valley near lag×2 (±5%)
+      const lo = Math.max(this.minLag, Math.floor(subOctaveLag * 0.95));
+      const hi = Math.min(effectiveMaxLag - 1, Math.ceil(subOctaveLag * 1.05));
+      let subBest = -1;
+      let subBestVal = 1;
+      for (let t = lo; t <= hi; t++) {
+        if (this._cmndfBuffer[t] < subBestVal) {
+          subBestVal = this._cmndfBuffer[t];
+          subBest = t;
+        }
+      }
+      // Prefer sub-octave if its valley is reasonably strong
+      if (subBest > 0 && subBestVal < this.threshold * 2.5) {
+        bestLag = subBest;
+      }
+    }
 
     // Step 4: Parabolic interpolation for sub-sample accuracy
     const refinedLag = this._parabolicInterpolation(bestLag, effectiveMaxLag);
@@ -107,7 +141,6 @@ export class PitchDetector {
     }
 
     // Confidence: lower CMNDF value at the minimum means higher confidence
-    // Map from CMNDF [0, threshold] -> confidence [1, 0]
     const cmndfValue = this._cmndfBuffer[bestLag];
     const confidence = 1 - cmndfValue;
 
@@ -126,13 +159,22 @@ export class PitchDetector {
     // Step 6: Median filtering
     const medianFrequency = this._medianFilter(correctedFrequency);
 
-    // Step 7: Confidence-weighted EMA smoothing
+    // Step 7: Proximity-aware EMA smoothing
+    // When frequency is close to smoothed value (<10 cents), converge faster
     const baseAlpha = Math.max(0.08, Math.min(0.5, 30 / medianFrequency));
-    const alpha = baseAlpha + (1 - baseAlpha) * confidence * 0.4;
+    let alpha = baseAlpha + (1 - baseAlpha) * confidence * 0.4;
 
     if (this._smoothedFrequency === 0) {
       this._smoothedFrequency = medianFrequency;
     } else {
+      // Proximity boost: if within ~10 cents, double alpha for faster lock-in
+      const centsDiff = Math.abs(1200 * Math.log2(medianFrequency / this._smoothedFrequency));
+      if (centsDiff < 10) {
+        alpha = Math.min(1, alpha * 2);
+      } else if (centsDiff > 100) {
+        // Large jump (new note) — snap immediately
+        alpha = 1;
+      }
       this._smoothedFrequency =
         alpha * medianFrequency + (1 - alpha) * this._smoothedFrequency;
     }
