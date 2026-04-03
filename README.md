@@ -47,15 +47,17 @@ Vanilla HTML + CSS + JS — no framework, no build step, no dependencies. Total 
 1. `getUserMedia` — echo cancellation, AGC and noise suppression **disabled**
 2. **AudioWorklet** runs YIN detection on the audio thread (falls back to ScriptProcessor)
 3. YIN steps: difference function → cumulative mean normalized difference → absolute threshold (0.11) → parabolic interpolation
-4. Adaptive buffer: 8192 samples below 200 Hz (low strings), 4096 above
-5. DC offset removal before each analysis window
-6. Median filter (ring buffer of 5) removes outliers
-7. Confidence-weighted EMA smoothing — high-confidence readings update the display faster
-8. Harmonic correction: ×2/÷2 octave jumps and ×3/÷3 harmonic lock (e.g. low E → 3rd harmonic)
-9. Confidence filter: frames below 0.25 confidence discarded
-10. Noise gate with 150ms hold-open (sustain dropout prevention) and auto noise floor calibration on start (p75 × 2.5); presets: low 0.001 / medium 0.004 / high 0.015
-11. In-tune LED hysteresis: enters at < 5¢, exits at ≥ 8¢
-12. Results throttled to ~60 fps for UI updates
+4. **Sub-octave validation** — after finding the first CMNDF valley, checks lag×2 for a fundamental an octave below; prefers it when CMNDF < threshold×2.5 (fixes harmonic confusion on low strings like E2/A2)
+5. Adaptive buffer: 8192 samples below 200 Hz (low strings), 4096 above
+6. DC offset removal before each analysis window
+7. **Onset detection** — RMS jump >3× resets median filter and EMA for instant response to new notes
+8. Median filter (ring buffer of 5 in worklet, 9 in fallback) removes outliers
+9. **Proximity-aware EMA smoothing** — doubles alpha within 10¢ for faster lock-in; snaps immediately at >100¢ (note change); confidence-weighted base alpha
+10. Harmonic correction: ×2/÷2 octave jumps corrected against smoothed reference frequency
+11. Confidence filter: frames below 0.25 confidence discarded
+12. Noise gate with 150ms hold-open (sustain dropout prevention) and auto noise floor calibration on start (p75 × 2.5); presets: low 0.001 / medium 0.004 / high 0.015
+13. In-tune LED hysteresis: enters at < 5¢, exits at ≥ 8¢
+14. Results throttled to ~60 fps for UI updates
 
 ## Local Development
 
