@@ -4,9 +4,8 @@ A professional chromatic tuner for musicians who just want to tune — no ads, n
 
 Built by a working musician for his students. Every guitarist, bassist, or string player deserves a reliable tuner that gets out of the way and does its job. That's it.
 
-**[tuner.schoensgibl.com](https://tuner.schoensgibl.com)**
+<img height="600" alt="pro-tuner" src="https://github.com/user-attachments/assets/35e11796-3d7b-41be-8521-70b5f8a7e52c" />
 
-![Pro Tuner Demo](assets/demo.gif)
 
 ---
 
