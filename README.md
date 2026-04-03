@@ -1,6 +1,8 @@
 # Pro Tuner
 
-Professional chromatic instrument tuner — runs in the browser, works offline.
+A professional chromatic tuner for musicians who just want to tune — no ads, no paywalls, no distractions.
+
+Built by a working musician for his students. Every guitarist, bassist, or string player deserves a reliable tuner that gets out of the way and does its job. That's it.
 
 **[tuner.schoensgibl.com](https://tuner.schoensgibl.com)**
 
