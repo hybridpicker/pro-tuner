@@ -4,24 +4,32 @@ A professional chromatic tuner for musicians who just want to tune — no ads, n
 
 Built by a working musician for his students. Every guitarist, bassist, or string player deserves a reliable tuner that gets out of the way and does its job. That's it.
 
-<img height="600" alt="pro-tuner" src="https://github.com/user-attachments/assets/35e11796-3d7b-41be-8521-70b5f8a7e52c" />
+**[tuner.schoensgibl.com](https://tuner.schoensgibl.com)**
 
+<img height="600" alt="Pro Tuner showing guitar standard tuning in dark mode with needle meter and string cards" src="https://github.com/user-attachments/assets/35e11796-3d7b-41be-8521-70b5f8a7e52c" />
+
+*Dark mode — guitar standard tuning, needle meter*
 
 ---
 
 ## Features
 
-- **YIN pitch detection** — accurate to ±0.5 cent across 50–2000 Hz
-- **Needle meter** — spring-physics animated needle with LED indicators
+- **Free & ad-free** — always, no account required
+- **Works offline** — install as a PWA, tune without internet
 - **Multi-instrument** — Guitar (11 tunings), Bass, Ukulele, Violin, Viola, Banjo, Chromatic
-- **Smart string matching** — cents calculated against nearest string; falls back to chromatic for notes outside any string's range (>50 cent)
-- **Collapsible selector** — instrument & tuning picker folds away to keep focus on the meter
+- **±0.5 cent accuracy** — YIN pitch detection across 50–2000 Hz
+- **Needle meter** — spring-physics animated needle with LED indicators
 - **Reference tones** — tap any string card to hear it
 - **Quick-tune lock** — double-tap a string to lock the detector to it
 - **A4 reference** — adjustable 430–450 Hz
 - **Sharp / flat notation**, transposition support
-- **PWA** — installable, works fully offline, Wake Lock keeps screen on while tuning
 - **Dark mode by default**, light mode toggle
+- **Wake Lock** — screen stays on while you tune
+
+---
+
+<details>
+<summary>Technical details (audio pipeline, architecture)</summary>
 
 ## Stack
 
@@ -79,6 +87,10 @@ ssh jarvis@94.130.37.43 "cd /home/jarvis/apps/pro-tuner && git pull origin main"
 
 Nginx serves the directory directly with `Permissions-Policy: microphone=(self)`.
 
+</details>
+
+---
+
 ## License
 
-MIT — © Lukas Schönsgibl
+MIT — made with care by [Lukas Schönsgibl](https://schoensgibl.com), guitarist and music teacher.
