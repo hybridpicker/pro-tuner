@@ -15,7 +15,7 @@ import {
   getTuningsForInstrument,
   getTuningById,
   recalculateFrequencies,
-  findClosestString,
+  findBestStringMatch,
   frequencyToNote,
 } from './tunings/tuning-data.js';
 import { MeterDisplay } from './ui/meter.js';
@@ -86,6 +86,10 @@ let inTuneState       = false; // hysteresis: enters at <5¢, exits at ≥8¢
 // Noise floor calibration state
 let _calibrating        = false;
 let _calibrationSamples = [];
+
+// String matching stability state
+let lastMatchedStringNum = null;
+let lastMatchedAt = 0;
 
 // ──────────────────────────────────────────────────────────────
 //  Initialization
@@ -251,6 +255,8 @@ function selectTuning(tuningId, save = true) {
   if (save) settings.set('lastTuning', tuningId);
 
   currentTuning = getAdjustedTuning(tuningId);
+  lastMatchedStringNum = null;
+  lastMatchedAt = 0;
 
   // Update active state on tuning buttons
   for (const btn of els.tuningSel.children) {
@@ -470,6 +476,8 @@ function stopTuner() {
   els.inputLevel.style.width = '0%';
   document.querySelector('.note-display').classList.remove('in-tune');
   stringDisplay.setActive(-1);
+  lastMatchedStringNum = null;
+  lastMatchedAt = 0;
 
   setStatus('Tuner off', '');
   releaseWakeLock();
@@ -480,6 +488,42 @@ function stopTuner() {
 // ──────────────────────────────────────────────────────────────
 
 let lastDisplayUpdate = 0;
+
+function resolveTuningMatch(frequency) {
+  if (!currentTuning || currentTuning.strings.length === 0) return null;
+
+  const lockedIdx = stringDisplay.getLockedIndex();
+  if (lockedIdx >= 0 && lockedIdx < currentTuning.strings.length) {
+    const lockedString = currentTuning.strings[lockedIdx];
+    return {
+      string: lockedString,
+      cents: 1200 * Math.log2(frequency / lockedString.freq),
+      correctedFrequency: frequency,
+      octaveShift: 0,
+    };
+  }
+
+  const isGuitar = currentTuning.instrument === 'guitar';
+  const preferredString =
+    performance.now() - lastMatchedAt < 1500 ? lastMatchedStringNum : null;
+
+  const match = findBestStringMatch(frequency, currentTuning, {
+    preferredString,
+    allowOctaveCorrection: isGuitar,
+  });
+
+  if (!match) return null;
+
+  // Keep string mode trustworthy: only attach to a target string when the
+  // corrected pitch sits near that string, or the harmonic correction is
+  // clearly better than the raw reading.
+  const rawCents = 1200 * Math.log2(frequency / match.string.freq);
+  const correctedWinsClearly =
+    match.octaveShift !== 0 && Math.abs(match.cents) + 20 < Math.abs(rawCents);
+  const closeEnough = Math.abs(match.cents) <= (isGuitar ? 65 : 50);
+
+  return closeEnough || correctedWinsClearly ? match : null;
+}
 
 function handlePitchResult(data) {
   if (!isRunning) return;
@@ -512,56 +556,50 @@ function handlePitchResult(data) {
 
   // Apply transposition
   const transposition = settings.get('transposition');
-  const displayFreq = transposition !== 0
+  const rawDisplayFreq = transposition !== 0
     ? frequency * Math.pow(2, transposition / 12)
     : frequency;
 
-  // Chromatic mode or string mode
-  const useFlats = settings.get('notation') === 'flat';
-  const a4 = settings.get('a4Reference');
-  const noteInfo = frequencyToNote(displayFreq, a4, useFlats);
-
-  // Update note display
-  els.detectedNote.textContent = noteInfo.note;
-  els.detectedOctave.textContent = noteInfo.octave;
-  els.frequency.textContent = `${displayFreq.toFixed(1)} Hz`;
-
   let cents;
+  let displayFreq = rawDisplayFreq;
+  let noteInfo;
 
   if (currentTuning && currentTuning.strings.length > 0) {
-    // String mode: find closest string
-    const lockedIdx = stringDisplay.getLockedIndex();
-    let matchResult;
-
-    if (lockedIdx >= 0 && lockedIdx < currentTuning.strings.length) {
-      // Quick-tune: locked to specific string — always use string cents
-      const lockedString = currentTuning.strings[lockedIdx];
-      cents = 1200 * Math.log2(displayFreq / lockedString.freq);
-      matchResult = { string: lockedString, cents };
-    } else {
-      matchResult = findClosestString(displayFreq, currentTuning);
-
-      // If the closest string is more than 50 cents away the note isn't one
-      // of the tuning's strings — fall back to chromatic cents so the meter
-      // still reads meaningfully for any played note.
-      if (matchResult && Math.abs(matchResult.cents) > 50) {
-        matchResult = null;
-      }
-
-      cents = matchResult ? matchResult.cents : noteInfo.cents;
-    }
+    const matchResult = resolveTuningMatch(rawDisplayFreq);
+    const useFlats = settings.get('notation') === 'flat';
+    const a4 = settings.get('a4Reference');
 
     if (matchResult) {
+      displayFreq = matchResult.correctedFrequency;
+      noteInfo = frequencyToNote(displayFreq, a4, useFlats);
+      cents = matchResult.cents;
+      lastMatchedStringNum = matchResult.string.stringNum;
+      lastMatchedAt = now;
+
       // Highlight the closest string card
       const stringIdx = currentTuning.strings.indexOf(matchResult.string);
       stringDisplay.setActive(stringIdx);
     } else {
+      noteInfo = frequencyToNote(rawDisplayFreq, a4, useFlats);
+      cents = noteInfo.cents;
       stringDisplay.setActive(-1);
+      lastMatchedStringNum = null;
+      lastMatchedAt = 0;
     }
   } else {
     // Chromatic mode
+    const useFlats = settings.get('notation') === 'flat';
+    const a4 = settings.get('a4Reference');
+    noteInfo = frequencyToNote(rawDisplayFreq, a4, useFlats);
     cents = noteInfo.cents;
+    lastMatchedStringNum = null;
+    lastMatchedAt = 0;
   }
+
+  // Update note display after possible string-aware octave correction.
+  els.detectedNote.textContent = noteInfo.note;
+  els.detectedOctave.textContent = noteInfo.octave;
+  els.frequency.textContent = `${displayFreq.toFixed(1)} Hz`;
 
   cents = Math.round(cents);
 

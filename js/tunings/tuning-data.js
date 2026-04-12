@@ -355,24 +355,56 @@ export function recalculateFrequencies(a4Reference) {
 }
 
 /**
+ * Match a detected frequency to the most plausible string in a tuning.
+ * Supports light hysteresis and optional octave correction for instruments
+ * like guitar, where upper harmonics often dominate the raw detection.
+ */
+export function findBestStringMatch(frequency, tuning, options = {}) {
+  if (!tuning.strings.length || frequency <= 0) return null;
+
+  const {
+    preferredString = null,
+    allowOctaveCorrection = false,
+  } = options;
+
+  let best = null;
+  const octaveShifts = allowOctaveCorrection ? [0, -1, 1] : [0];
+
+  for (const str of tuning.strings) {
+    for (const octaveShift of octaveShifts) {
+      const correctedFrequency = frequency * Math.pow(2, octaveShift);
+      if (correctedFrequency <= 0) continue;
+
+      const cents = 1200 * Math.log2(correctedFrequency / str.freq);
+      const absCents = Math.abs(cents);
+
+      // Small bias toward staying on the same string to reduce card flicker.
+      const preferredBias = preferredString === str.stringNum ? 6 : 0;
+      const octavePenalty = octaveShift === 0 ? 0 : 14;
+      const score = absCents + octavePenalty - preferredBias;
+
+      if (!best || score < best.score) {
+        best = {
+          string: str,
+          cents,
+          score,
+          correctedFrequency,
+          octaveShift,
+        };
+      }
+    }
+  }
+
+  return best;
+}
+
+/**
  * Find the closest string in a tuning to a given frequency.
  * Returns { string, cents } where cents is the deviation.
  */
 export function findClosestString(frequency, tuning) {
-  if (!tuning.strings.length) return null;
-
-  let closest = null;
-  let minAbsCents = Infinity;
-
-  for (const str of tuning.strings) {
-    const cents = 1200 * Math.log2(frequency / str.freq);
-    if (Math.abs(cents) < minAbsCents) {
-      minAbsCents = Math.abs(cents);
-      closest = { string: str, cents };
-    }
-  }
-
-  return closest;
+  const best = findBestStringMatch(frequency, tuning);
+  return best ? { string: best.string, cents: best.cents } : null;
 }
 
 /**
