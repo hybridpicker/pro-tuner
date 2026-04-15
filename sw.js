@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pro-tuner-v5';
+const CACHE_NAME = 'pro-tuner-v6';
 const ASSETS = [
   '/',
   '/index.html',
@@ -15,7 +15,11 @@ const ASSETS = [
   '/js/ui/theme.js',
   '/js/utils/settings.js',
   '/manifest.json',
-  '/icons/favicon.svg'
+  '/icons/favicon.svg',
+  '/icons/icon-192.png',
+  '/icons/icon-512.png',
+  '/icons/icon-maskable.svg',
+  '/icons/og-image.svg'
 ];
 
 self.addEventListener('install', (event) => {
@@ -40,6 +44,7 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   if (!event.request.url.startsWith('http')) return;
+  if (event.request.method !== 'GET') return;
 
   event.respondWith(
     caches.match(event.request)
@@ -47,14 +52,20 @@ self.addEventListener('fetch', (event) => {
         if (cached) {
           return cached;
         }
+
         return fetch(event.request)
           .then((response) => {
-            if (!response || response.status !== 200 || response.type !== 'basic') {
+            if (!response || response.status !== 200) {
               return response;
             }
-            const clone = response.clone();
-            caches.open(CACHE_NAME)
-              .then((cache) => cache.put(event.request, clone));
+
+            const isCacheableType = response.type === 'basic' || response.type === 'cors';
+            if (isCacheableType) {
+              const clone = response.clone();
+              caches.open(CACHE_NAME)
+                .then((cache) => cache.put(event.request, clone));
+            }
+
             return response;
           });
       })

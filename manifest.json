@@ -2,7 +2,7 @@
   "id": "/",
   "name": "Pro Tuner",
   "short_name": "Pro Tuner",
-  "description": "Free, ad-free professional chromatic tuner for guitar, bass, ukulele, violin and more. Works offline. ±0.5 cent accuracy.",
+  "description": "Free, ad-free professional chromatic tuner for guitar, bass, ukulele, violin and more. Works offline. \u00b10.5 cent accuracy.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
@@ -10,7 +10,10 @@
   "theme_color": "#e8a838",
   "orientation": "portrait-primary",
   "lang": "en",
-  "categories": ["music", "utilities"],
+  "categories": [
+    "music",
+    "utilities"
+  ],
   "icons": [
     {
       "src": "/icons/favicon.svg",
@@ -48,15 +51,25 @@
       "name": "Tune Guitar",
       "short_name": "Guitar",
       "description": "Open in guitar standard tuning",
-      "url": "/?instrument=guitar",
-      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+      "url": "/?instrument=guitar&tuning=guitar-standard",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
     },
     {
       "name": "Chromatic Mode",
       "short_name": "Chromatic",
       "description": "Open in chromatic mode",
       "url": "/?instrument=chromatic",
-      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
     }
   ]
 }

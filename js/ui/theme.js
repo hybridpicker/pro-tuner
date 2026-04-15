@@ -1,6 +1,10 @@
 // theme.js — Theme manager for Pro Tuner (dark/light mode)
 
 const STORAGE_KEY = 'pro-tuner-theme';
+const THEME_COLORS = {
+    dark: '#e8a838',
+    light: '#c88a20'
+};
 
 export class ThemeManager {
     constructor() {
@@ -31,6 +35,7 @@ export class ThemeManager {
         this.theme = theme;
         localStorage.setItem(STORAGE_KEY, theme);
         this._apply();
+        window.dispatchEvent(new CustomEvent('themechange', { detail: { theme } }));
     }
 
     get() {
@@ -42,6 +47,11 @@ export class ThemeManager {
             document.documentElement.setAttribute('data-theme', 'light');
         } else {
             document.documentElement.removeAttribute('data-theme');
+        }
+
+        const metaTheme = document.querySelector('meta[name="theme-color"]');
+        if (metaTheme) {
+            metaTheme.setAttribute('content', THEME_COLORS[this.theme]);
         }
     }
 }

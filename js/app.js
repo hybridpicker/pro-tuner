@@ -13,7 +13,6 @@ import {
   CHROMATIC_MODE,
   getInstruments,
   getTuningsForInstrument,
-  getTuningById,
   recalculateFrequencies,
   findBestStringMatch,
   frequencyToNote,
@@ -21,103 +20,96 @@ import {
 import { MeterDisplay } from './ui/meter.js';
 import { StringDisplay } from './ui/string-display.js';
 import { ThemeManager } from './ui/theme.js';
+import { Visualizations } from './ui/waveform.js';
 import { Settings } from './utils/settings.js';
-
-// ──────────────────────────────────────────────────────────────
-//  DOM references
-// ──────────────────────────────────────────────────────────────
 
 const $ = (id) => document.getElementById(id);
 
 const els = {
-  powerBtn:         $('powerBtn'),
-  detectedNote:     $('detectedNote'),
-  detectedOctave:   $('detectedOctave'),
-  frequency:        $('frequency'),
-  cents:            $('cents'),
-  meterCanvas:      $('meterCanvas'),
-  inputLevel:       $('inputLevel'),
-  instrumentSel:    $('instrumentSelector'),
-  tuningSel:        $('tuningSelector'),
-  stringDisplay:    $('stringDisplay'),
-  stringHint:       $('stringHint'),
-  status:           $('status'),
-  selectorToggle:   $('selectorToggle'),
-  selectorPanel:    $('selectorPanel'),
-  selectorLabel:    $('selectorLabel'),
+  powerBtn: $('powerBtn'),
+  detectedNote: $('detectedNote'),
+  detectedOctave: $('detectedOctave'),
+  frequency: $('frequency'),
+  cents: $('cents'),
+  meterCanvas: $('meterCanvas'),
+  inputLevel: $('inputLevel'),
+  instrumentSel: $('instrumentSelector'),
+  tuningSel: $('tuningSelector'),
+  stringDisplay: $('stringDisplay'),
+  stringHint: $('stringHint'),
+  status: $('status'),
+  selectorToggle: $('selectorToggle'),
+  selectorPanel: $('selectorPanel'),
+  selectorLabel: $('selectorLabel'),
+  visualizationToggle: $('visualizationToggle'),
+  visualizationPanel: $('visualizationPanel'),
+  waveformCanvas: $('waveformCanvas'),
+  pitchHistoryCanvas: $('pitchHistoryCanvas'),
+  noteDisplay: document.querySelector('.note-display'),
 };
 
-// ──────────────────────────────────────────────────────────────
-//  Module instances
-// ──────────────────────────────────────────────────────────────
-
-const settings     = new Settings();
-const theme        = new ThemeManager();
-const meter        = new MeterDisplay(els.meterCanvas);
+const settings = new Settings();
+const theme = new ThemeManager();
+const meter = new MeterDisplay(els.meterCanvas);
 const stringDisplay = new StringDisplay(els.stringDisplay);
-const noiseGate    = new NoiseGate();
+const noiseGate = new NoiseGate();
+const visualizations = new Visualizations(els.waveformCanvas, els.pitchHistoryCanvas);
 
-let toneGenerator  = null; // Created lazily when AudioContext exists
-let pitchDetector  = null; // Created when tuner starts
+let toneGenerator = null;
+let pitchDetector = null;
 
-// ──────────────────────────────────────────────────────────────
-//  State
-// ──────────────────────────────────────────────────────────────
-
-let audioContext    = null;
-let mediaStream     = null;
-let workletNode     = null;
+let audioContext = null;
+let mediaStream = null;
+let workletNode = null;
 let scriptProcessor = null;
-let analyser        = null;
-let sourceNode      = null;
-let isRunning       = false;
-let wakeLock        = null;
+let analyser = null;
+let sourceNode = null;
+let isRunning = false;
+let wakeLock = null;
 
 let currentInstrument = settings.get('lastInstrument');
-let currentTuningId   = settings.get('lastTuning');
-let currentTuning     = null;  // Resolved tuning object (with adjusted freqs)
-let adjustedTunings   = null;  // All tunings recalculated for current A4
+let currentTuningId = settings.get('lastTuning');
+let currentTuning = null;
+let adjustedTunings = null;
 
-// In-tune confirmation state
-let inTuneStartTime   = 0;
-let inTuneConfirmed   = false;
-let inTuneState       = false; // hysteresis: enters at <5¢, exits at ≥8¢
+let inTuneStartTime = 0;
+let inTuneConfirmed = false;
+let inTuneState = false;
 
-// Noise floor calibration state
-let _calibrating        = false;
+let _calibrating = false;
 let _calibrationSamples = [];
 
-// String matching stability state
 let lastMatchedStringNum = null;
 let lastMatchedAt = 0;
-
-// ──────────────────────────────────────────────────────────────
-//  Initialization
-// ──────────────────────────────────────────────────────────────
+let lastDisplayedFrequency = 0;
+let waveformFrame = 0;
+let waveformBuffer = null;
 
 function init() {
   theme.init();
   settings.initPanel();
   rebuildAdjustedTunings();
+  applyInitialRoute();
   renderInstrumentSelector();
   selectInstrument(currentInstrument, false);
-  selectTuning(currentTuningId, false);
+  if (currentTuningId) {
+    selectTuning(currentTuningId, false);
+  }
 
-  // Settings listeners
   settings.onChange('a4Reference', () => {
     rebuildAdjustedTunings();
     reselectCurrentTuning();
+    updateNoteDisplay();
   });
   settings.onChange('sensitivity', (val) => noiseGate.setSensitivity(val));
   settings.onChange('notation', () => updateNoteDisplay());
+  settings.onChange('meterStyle', (mode) => meter.setMode(mode));
 
-  // Apply stored settings
   noiseGate.setSensitivity(settings.get('sensitivity'));
+  meter.setMode(settings.get('meterStyle'));
 
-  // Power button
   els.powerBtn.addEventListener('click', toggleTuner);
 
-  // Keyboard shortcut: Space toggles tuner (when not focused on input)
   document.addEventListener('keydown', (e) => {
     if (e.key === ' ' && e.target === document.body) {
       e.preventDefault();
@@ -125,18 +117,16 @@ function init() {
     }
   });
 
-  // Selector collapse toggle
   els.selectorToggle.addEventListener('click', () => {
     const expanded = els.selectorToggle.getAttribute('aria-expanded') === 'true';
-    els.selectorToggle.setAttribute('aria-expanded', String(!expanded));
-    if (expanded) {
-      els.selectorPanel.setAttribute('hidden', '');
-    } else {
-      els.selectorPanel.removeAttribute('hidden');
-    }
+    setSelectorOpen(!expanded);
   });
 
-  // String card click → play reference tone
+  els.visualizationToggle.addEventListener('click', () => {
+    const expanded = els.visualizationToggle.getAttribute('aria-expanded') === 'true';
+    setVisualizationOpen(!expanded);
+  });
+
   stringDisplay.onClick((str) => {
     if (!audioContext) {
       audioContext = createAudioContext();
@@ -151,48 +141,75 @@ function init() {
     }
   });
 
-  // Window resize
   window.addEventListener('resize', () => {
     meter.resize();
+    if (visualizations.isVisible) {
+      visualizations.show();
+    }
   });
 
-  // Register service worker
-  registerServiceWorker();
+  window.addEventListener('themechange', () => {
+    meter.resize();
+    visualizations.refreshColors();
+    if (visualizations.isVisible) {
+      visualizations.show();
+    }
+  });
 
+  registerServiceWorker();
+  setSelectorOpen(false);
+  setVisualizationOpen(false);
+  visualizations.show();
+  visualizations.hide();
   setStatus('Press power to start', '');
 }
 
-// ──────────────────────────────────────────────────────────────
-//  Tuning data helpers
-// ──────────────────────────────────────────────────────────────
+function applyInitialRoute() {
+  const params = new URLSearchParams(window.location.search);
+  const requestedInstrument = params.get('instrument');
+  const requestedTuning = params.get('tuning');
+  const instruments = new Set(['chromatic', ...getInstruments()]);
+
+  if (requestedInstrument && instruments.has(requestedInstrument)) {
+    currentInstrument = requestedInstrument;
+    currentTuningId = requestedInstrument === 'chromatic'
+      ? 'chromatic'
+      : getTuningsForInstrument(requestedInstrument)[0]?.id || currentTuningId;
+  }
+
+  if (!requestedTuning) return;
+
+  if (requestedTuning === 'chromatic') {
+    currentInstrument = 'chromatic';
+    currentTuningId = 'chromatic';
+    return;
+  }
+
+  const tuning = TUNINGS.find((item) => item.id === requestedTuning);
+  if (tuning) {
+    currentInstrument = tuning.instrument;
+    currentTuningId = tuning.id;
+  }
+}
 
 function rebuildAdjustedTunings() {
   const a4 = settings.get('a4Reference');
-  if (a4 === 440) {
-    adjustedTunings = TUNINGS;
-  } else {
-    adjustedTunings = recalculateFrequencies(a4);
-  }
+  adjustedTunings = a4 === 440 ? TUNINGS : recalculateFrequencies(a4);
 }
 
 function getAdjustedTuning(id) {
   if (id === 'chromatic') return CHROMATIC_MODE;
-  return adjustedTunings.find(t => t.id === id) || adjustedTunings[0];
+  return adjustedTunings.find((t) => t.id === id) || adjustedTunings[0];
 }
 
 function reselectCurrentTuning() {
   selectTuning(currentTuningId, false);
 }
 
-// ──────────────────────────────────────────────────────────────
-//  Instrument & Tuning selectors
-// ──────────────────────────────────────────────────────────────
-
 function renderInstrumentSelector() {
   els.instrumentSel.innerHTML = '';
   const instruments = getInstruments();
 
-  // Add Chromatic as first option
   const chromBtn = createSelectorButton('Chromatic', 'chromatic', currentInstrument === 'chromatic');
   chromBtn.addEventListener('click', () => selectInstrument('chromatic'));
   els.instrumentSel.appendChild(chromBtn);
@@ -205,27 +222,28 @@ function renderInstrumentSelector() {
   }
 }
 
+function syncSelectorButtons(container, activeValue) {
+  for (const btn of container.children) {
+    const isActive = btn.dataset.value === activeValue;
+    btn.classList.toggle('active', isActive);
+    btn.setAttribute('aria-selected', String(isActive));
+  }
+}
+
 function selectInstrument(instrument, save = true) {
   currentInstrument = instrument;
   if (save) settings.set('lastInstrument', instrument);
 
-  // Update active state on instrument buttons
-  for (const btn of els.instrumentSel.children) {
-    btn.classList.toggle('active', btn.dataset.value === instrument);
-  }
-
-  // Render tuning selector
+  syncSelectorButtons(els.instrumentSel, instrument);
   renderTuningSelector(instrument);
 
-  // Auto-select first tuning for this instrument
   if (instrument === 'chromatic') {
     selectTuning('chromatic', save);
   } else {
     const tunings = getTuningsForInstrument(instrument);
     if (tunings.length > 0) {
-      // Try to restore last tuning if it matches this instrument
-      const lastTuning = settings.get('lastTuning');
-      const matchesInstrument = tunings.some(t => t.id === lastTuning);
+      const lastTuning = currentTuningId || settings.get('lastTuning');
+      const matchesInstrument = tunings.some((t) => t.id === lastTuning);
       selectTuning(matchesInstrument ? lastTuning : tunings[0].id, save);
     }
   }
@@ -244,7 +262,6 @@ function renderTuningSelector(instrument) {
 }
 
 function updateSelectorLabel() {
-  if (!els.selectorLabel) return;
   const instLabel = currentInstrument.charAt(0).toUpperCase() + currentInstrument.slice(1);
   const tuningLabel = currentTuning ? currentTuning.name : '';
   els.selectorLabel.textContent = tuningLabel ? `${instLabel} — ${tuningLabel}` : instLabel;
@@ -258,15 +275,12 @@ function selectTuning(tuningId, save = true) {
   lastMatchedStringNum = null;
   lastMatchedAt = 0;
 
-  // Update active state on tuning buttons
-  for (const btn of els.tuningSel.children) {
-    btn.classList.toggle('active', btn.dataset.value === tuningId);
-  }
+  syncSelectorButtons(els.tuningSel, tuningId);
 
-  // Render string cards (or hide for chromatic)
   if (currentTuning.strings.length > 0) {
     stringDisplay.render(currentTuning);
     els.stringHint.style.display = '';
+    els.stringHint.textContent = 'Tap to hear a tone. Double-click, long-press, or press L to lock a string.';
   } else {
     stringDisplay.reset();
     els.stringHint.style.display = 'none';
@@ -285,9 +299,27 @@ function createSelectorButton(label, value, isActive) {
   return btn;
 }
 
-// ──────────────────────────────────────────────────────────────
-//  Audio Engine
-// ──────────────────────────────────────────────────────────────
+function setSelectorOpen(isOpen) {
+  els.selectorToggle.setAttribute('aria-expanded', String(isOpen));
+  if (isOpen) {
+    els.selectorPanel.removeAttribute('hidden');
+  } else {
+    els.selectorPanel.setAttribute('hidden', '');
+  }
+}
+
+function setVisualizationOpen(isOpen) {
+  els.visualizationToggle.setAttribute('aria-expanded', String(isOpen));
+  if (isOpen) {
+    els.visualizationPanel.removeAttribute('hidden');
+    visualizations.show();
+    startWaveformLoop();
+  } else {
+    els.visualizationPanel.setAttribute('hidden', '');
+    visualizations.hide();
+    stopWaveformLoop();
+  }
+}
 
 function createAudioContext() {
   return new (window.AudioContext || window.webkitAudioContext)();
@@ -303,7 +335,6 @@ async function toggleTuner() {
 
 async function startTuner() {
   try {
-    // Request microphone
     mediaStream = await navigator.mediaDevices.getUserMedia({
       audio: {
         echoCancellation: false,
@@ -312,7 +343,6 @@ async function startTuner() {
       },
     });
 
-    // Create/resume AudioContext
     if (!audioContext) {
       audioContext = createAudioContext();
     }
@@ -324,19 +354,17 @@ async function startTuner() {
     analyser = audioContext.createAnalyser();
     analyser.fftSize = 2048;
     sourceNode.connect(analyser);
+    waveformBuffer = new Float32Array(analyser.fftSize);
 
-    // Try AudioWorklet, fall back to ScriptProcessor
     const workletStarted = await tryAudioWorklet();
     if (!workletStarted) {
       startScriptProcessorFallback();
     }
 
-    // Create tone generator if needed
     if (!toneGenerator) {
       toneGenerator = new ToneGenerator(audioContext);
     }
 
-    // Create pitch detector for fallback path
     if (!pitchDetector) {
       pitchDetector = new PitchDetector(audioContext.sampleRate);
     }
@@ -348,15 +376,14 @@ async function startTuner() {
 
     els.powerBtn.classList.add('active');
     meter.start();
-
-    // Request wake lock
     requestWakeLock();
 
-    // Calibrate noise floor for 300ms before listening
+    if (visualizations.isVisible) {
+      startWaveformLoop();
+    }
+
     await calibrateNoiseFloor();
-
     setStatus('Listening — play a string', 'listening');
-
   } catch (err) {
     console.error('Failed to start tuner:', err);
     setStatus('Microphone access denied', 'error');
@@ -392,14 +419,12 @@ function startScriptProcessorFallback() {
   scriptProcessor.onaudioprocess = () => {
     analyser.getFloatTimeDomainData(buffer);
 
-    // Calculate RMS
     let sumSq = 0;
     for (let i = 0; i < buffer.length; i++) {
       sumSq += buffer[i] * buffer[i];
     }
     const rms = Math.sqrt(sumSq / buffer.length);
 
-    // Run pitch detection
     const result = pitchDetector.detect(buffer, rms);
 
     handlePitchResult({
@@ -416,7 +441,7 @@ async function calibrateNoiseFloor() {
   _calibrationSamples = [];
   setStatus('Calibrating…', 'listening');
 
-  await new Promise(resolve => setTimeout(resolve, 300));
+  await new Promise((resolve) => setTimeout(resolve, 300));
 
   _calibrating = false;
   if (_calibrationSamples.length > 0) {
@@ -424,17 +449,14 @@ async function calibrateNoiseFloor() {
     const p75 = sorted[Math.floor(sorted.length * 0.75)];
     noiseGate.setThreshold(p75 * 2.5);
   }
-  // If no samples arrived, NoiseGate falls back to _presetThreshold automatically
   _calibrationSamples = [];
 }
 
 function stopTuner() {
-  // Stop reference tone
   if (toneGenerator && toneGenerator.isPlaying()) {
     toneGenerator.stop();
   }
 
-  // Disconnect audio nodes
   if (workletNode) {
     workletNode.disconnect();
     workletNode = null;
@@ -462,30 +484,58 @@ function stopTuner() {
   inTuneStartTime = 0;
   inTuneConfirmed = false;
   inTuneState = false;
+  lastDisplayedFrequency = 0;
+  waveformBuffer = null;
 
   els.powerBtn.classList.remove('active');
   meter.stop();
   meter.reset();
 
-  // Reset display
   els.detectedNote.textContent = '—';
   els.detectedOctave.textContent = '';
   els.frequency.textContent = '— Hz';
   els.cents.textContent = '— cent';
   els.cents.className = 'note-display__cents';
   els.inputLevel.style.width = '0%';
-  document.querySelector('.note-display').classList.remove('in-tune');
+  els.noteDisplay.classList.remove('in-tune');
   stringDisplay.setActive(-1);
   lastMatchedStringNum = null;
   lastMatchedAt = 0;
+
+  stopWaveformLoop();
+  visualizations.pitchHistory.length = 0;
+  if (visualizations.isVisible) {
+    visualizations.show();
+  }
 
   setStatus('Tuner off', '');
   releaseWakeLock();
 }
 
-// ──────────────────────────────────────────────────────────────
-//  Pitch result handling
-// ──────────────────────────────────────────────────────────────
+function startWaveformLoop() {
+  if (waveformFrame || !visualizations.isVisible) return;
+
+  const draw = () => {
+    waveformFrame = 0;
+    if (!visualizations.isVisible) return;
+
+    if (analyser && waveformBuffer) {
+      analyser.getFloatTimeDomainData(waveformBuffer);
+      visualizations.updateWaveform(waveformBuffer);
+    }
+
+    waveformFrame = requestAnimationFrame(draw);
+  };
+
+  waveformFrame = requestAnimationFrame(draw);
+}
+
+function stopWaveformLoop() {
+  if (waveformFrame) {
+    cancelAnimationFrame(waveformFrame);
+    waveformFrame = 0;
+  }
+}
 
 let lastDisplayUpdate = 0;
 
@@ -504,8 +554,7 @@ function resolveTuningMatch(frequency) {
   }
 
   const isGuitar = currentTuning.instrument === 'guitar';
-  const preferredString =
-    performance.now() - lastMatchedAt < 1500 ? lastMatchedStringNum : null;
+  const preferredString = performance.now() - lastMatchedAt < 1500 ? lastMatchedStringNum : null;
 
   const match = findBestStringMatch(frequency, currentTuning, {
     preferredString,
@@ -514,9 +563,6 @@ function resolveTuningMatch(frequency) {
 
   if (!match) return null;
 
-  // Keep string mode trustworthy: only attach to a target string when the
-  // corrected pitch sits near that string, or the harmonic correction is
-  // clearly better than the raw reading.
   const rawCents = 1200 * Math.log2(frequency / match.string.freq);
   const correctedWinsClearly =
     match.octaveShift !== 0 && Math.abs(match.cents) + 20 < Math.abs(rawCents);
@@ -530,31 +576,25 @@ function handlePitchResult(data) {
 
   const { frequency, rms, confidence } = data;
 
-  // Update input level meter
   const levelDb = rms > 0 ? 20 * Math.log10(rms) + 60 : 0;
   const levelPct = Math.min(100, Math.max(0, levelDb * 2));
   els.inputLevel.style.width = `${levelPct}%`;
 
-  // Collect calibration samples during startup phase
   if (_calibrating) {
     if (rms > 0) _calibrationSamples.push(rms);
     return;
   }
 
-  // Noise gate check
   if (!noiseGate.isAboveThreshold(rms) || frequency <= 0) {
     return;
   }
 
-  // Skip low-confidence frames (noisy/uncertain detection)
   if (confidence < 0.25) return;
 
-  // Throttle display updates to ~60fps
   const now = performance.now();
   if (now - lastDisplayUpdate < 16) return;
   lastDisplayUpdate = now;
 
-  // Apply transposition
   const transposition = settings.get('transposition');
   const rawDisplayFreq = transposition !== 0
     ? frequency * Math.pow(2, transposition / 12)
@@ -563,11 +603,11 @@ function handlePitchResult(data) {
   let cents;
   let displayFreq = rawDisplayFreq;
   let noteInfo;
+  const useFlats = settings.get('notation') === 'flat';
+  const a4 = settings.get('a4Reference');
 
   if (currentTuning && currentTuning.strings.length > 0) {
     const matchResult = resolveTuningMatch(rawDisplayFreq);
-    const useFlats = settings.get('notation') === 'flat';
-    const a4 = settings.get('a4Reference');
 
     if (matchResult) {
       displayFreq = matchResult.correctedFrequency;
@@ -576,7 +616,6 @@ function handlePitchResult(data) {
       lastMatchedStringNum = matchResult.string.stringNum;
       lastMatchedAt = now;
 
-      // Highlight the closest string card
       const stringIdx = currentTuning.strings.indexOf(matchResult.string);
       stringDisplay.setActive(stringIdx);
     } else {
@@ -587,42 +626,30 @@ function handlePitchResult(data) {
       lastMatchedAt = 0;
     }
   } else {
-    // Chromatic mode
-    const useFlats = settings.get('notation') === 'flat';
-    const a4 = settings.get('a4Reference');
     noteInfo = frequencyToNote(rawDisplayFreq, a4, useFlats);
     cents = noteInfo.cents;
     lastMatchedStringNum = null;
     lastMatchedAt = 0;
   }
 
-  // Update note display after possible string-aware octave correction.
   els.detectedNote.textContent = noteInfo.note;
   els.detectedOctave.textContent = noteInfo.octave;
   els.frequency.textContent = `${displayFreq.toFixed(1)} Hz`;
+  lastDisplayedFrequency = displayFreq;
 
   cents = Math.round(cents);
+  els.cents.textContent = cents > 0 ? `+${cents} cent` : `${cents} cent`;
 
-  // Update cents display
-  const centsText = cents > 0 ? `+${cents} cent` : `${cents} cent`;
-  els.cents.textContent = centsText;
-
-  // Update meter
   meter.update(cents);
 
-  // In-tune detection with hysteresis: enter at <5¢, exit at ≥8¢
   const absCents = Math.abs(cents);
   if (!inTuneState && absCents < 5) inTuneState = true;
   else if (inTuneState && absCents >= 8) inTuneState = false;
 
   const isVeryInTune = absCents < 2;
-
   els.cents.className = 'note-display__cents ' + (inTuneState ? 'in-tune' : 'off-tune');
+  els.noteDisplay.classList.toggle('in-tune', inTuneState);
 
-  const noteDisplayEl = document.querySelector('.note-display');
-  noteDisplayEl.classList.toggle('in-tune', inTuneState);
-
-  // Status text
   if (inTuneState) {
     setStatus('In tune', 'active');
   } else if (cents < 0) {
@@ -631,7 +658,10 @@ function handlePitchResult(data) {
     setStatus('Sharp — loosen string', '');
   }
 
-  // In-tune confirmation (held ±2 cents for 1 second)
+  if (visualizations.isVisible) {
+    visualizations.updatePitchHistory(displayFreq, now);
+  }
+
   if (isVeryInTune) {
     if (inTuneStartTime === 0) {
       inTuneStartTime = now;
@@ -643,37 +673,28 @@ function handlePitchResult(data) {
     inTuneStartTime = 0;
     inTuneConfirmed = false;
   }
-
 }
 
 function updateNoteDisplay() {
-  // Called when notation preference changes — the next pitch update will use it
+  if (!lastDisplayedFrequency) return;
+  const useFlats = settings.get('notation') === 'flat';
+  const a4 = settings.get('a4Reference');
+  const noteInfo = frequencyToNote(lastDisplayedFrequency, a4, useFlats);
+  els.detectedNote.textContent = noteInfo.note;
+  els.detectedOctave.textContent = noteInfo.octave;
 }
 
-// ──────────────────────────────────────────────────────────────
-//  In-tune confirmation
-// ──────────────────────────────────────────────────────────────
-
 function triggerInTuneConfirmation() {
-  // Haptic feedback
   if (navigator.vibrate) {
     navigator.vibrate(50);
   }
 }
-
-// ──────────────────────────────────────────────────────────────
-//  Status bar
-// ──────────────────────────────────────────────────────────────
 
 function setStatus(text, state) {
   const bar = document.querySelector('.status-bar');
   els.status.textContent = text;
   bar.className = 'status-bar' + (state ? ` ${state}` : '');
 }
-
-// ──────────────────────────────────────────────────────────────
-//  Wake Lock
-// ──────────────────────────────────────────────────────────────
 
 async function requestWakeLock() {
   if (!('wakeLock' in navigator)) return;
@@ -692,16 +713,11 @@ function releaseWakeLock() {
   }
 }
 
-// Re-acquire wake lock on visibility change
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible' && isRunning) {
     requestWakeLock();
   }
 });
-
-// ──────────────────────────────────────────────────────────────
-//  Service Worker
-// ──────────────────────────────────────────────────────────────
 
 function registerServiceWorker() {
   if ('serviceWorker' in navigator) {
@@ -710,9 +726,5 @@ function registerServiceWorker() {
     });
   }
 }
-
-// ──────────────────────────────────────────────────────────────
-//  Start
-// ──────────────────────────────────────────────────────────────
 
 init();

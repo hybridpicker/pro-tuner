@@ -58,7 +58,7 @@
                         <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
                     </svg>
                 </button>
-                <button class="btn-icon" id="settingsToggle" aria-label="Open settings" title="Settings">
+                <button class="btn-icon" id="settingsToggle" aria-label="Open settings" title="Settings" aria-haspopup="dialog" aria-controls="settingsPanel">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="3" />
                         <path
@@ -70,7 +70,7 @@
 
         <!-- Instrument & Tuning Selector -->
         <section class="selector" aria-label="Instrument and tuning selection">
-            <button class="selector__toggle" id="selectorToggle" aria-expanded="false">
+            <button class="selector__toggle" id="selectorToggle" aria-expanded="false" aria-controls="selectorPanel">
                 <span id="selectorLabel">Instrument &amp; Tuning</span>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="6 9 12 15 18 9" />
@@ -107,7 +107,6 @@
             <div class="meter-container">
                 <canvas id="meterCanvas" aria-hidden="true"></canvas>
             </div>
-            <!-- Input Level -->
             <div class="input-level">
                 <div class="input-level__bar">
                     <div class="input-level__fill" id="inputLevel"></div>
@@ -116,6 +115,26 @@
                     <span>MIN</span>
                     <span>INPUT LEVEL</span>
                     <span>MAX</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Visualizations -->
+        <section class="visualization-section" aria-label="Signal visualizations">
+            <button class="visualization-toggle" id="visualizationToggle" aria-expanded="false" aria-controls="visualizationPanel">
+                <span>Signal Scope</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="6 9 12 15 18 9" />
+                </svg>
+            </button>
+            <div class="visualization-panel" id="visualizationPanel" hidden>
+                <div class="visualization-card">
+                    <div class="visualization-card__label">Waveform</div>
+                    <canvas id="waveformCanvas" class="visualization-canvas" aria-hidden="true"></canvas>
+                </div>
+                <div class="visualization-card">
+                    <div class="visualization-card__label">Pitch History</div>
+                    <canvas id="pitchHistoryCanvas" class="visualization-canvas" aria-hidden="true"></canvas>
                 </div>
             </div>
         </section>
@@ -133,9 +152,9 @@
 
         <!-- Settings Panel (slide-in) -->
         <div class="settings-overlay" id="settingsOverlay" hidden></div>
-        <aside class="settings-panel" id="settingsPanel" role="dialog" aria-label="Settings" hidden>
+        <aside class="settings-panel" id="settingsPanel" role="dialog" aria-modal="true" aria-labelledby="settingsTitle" tabindex="-1" hidden>
             <div class="settings-panel__header">
-                <h2>Settings</h2>
+                <h2 id="settingsTitle">Settings</h2>
                 <button class="btn-icon" id="settingsClose" aria-label="Close settings">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <line x1="18" y1="6" x2="6" y2="18" />
@@ -144,7 +163,6 @@
                 </button>
             </div>
             <div class="settings-panel__body">
-                <!-- A4 Reference -->
                 <div class="setting-group">
                     <label class="setting-label">A4 Reference Pitch</label>
                     <div class="setting-a4">
@@ -155,7 +173,6 @@
                         <button class="setting-a4__btn" id="a4Plus" aria-label="Increase A4">+</button>
                     </div>
                 </div>
-                <!-- Sensitivity -->
                 <div class="setting-group">
                     <label class="setting-label">Sensitivity</label>
                     <div class="setting-toggle" role="radiogroup" aria-label="Sensitivity">
@@ -167,7 +184,15 @@
                             aria-checked="false">High</button>
                     </div>
                 </div>
-                <!-- Notation -->
+                <div class="setting-group">
+                    <label class="setting-label">Meter Style</label>
+                    <div class="setting-toggle" role="radiogroup" aria-label="Meter style">
+                        <button class="setting-toggle__btn" data-value="needle" role="radio"
+                            aria-checked="true">Needle</button>
+                        <button class="setting-toggle__btn" data-value="strobe" role="radio"
+                            aria-checked="false">Strobe</button>
+                    </div>
+                </div>
                 <div class="setting-group">
                     <label class="setting-label">Notation</label>
                     <div class="setting-toggle" role="radiogroup" aria-label="Notation preference">
@@ -177,7 +202,6 @@
                             aria-checked="false">Flat ♭</button>
                     </div>
                 </div>
-                <!-- Transposition -->
                 <div class="setting-group">
                     <label class="setting-label">Transposition</label>
                     <div class="setting-select">

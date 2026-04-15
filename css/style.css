@@ -200,11 +200,13 @@ body {
     border-color: var(--border-light);
 }
 
-.selector__toggle[aria-expanded="true"] svg {
+.selector__toggle[aria-expanded="true"] svg,
+.visualization-toggle[aria-expanded="true"] svg {
     transform: rotate(180deg);
 }
 
-.selector__toggle svg {
+.selector__toggle svg,
+.visualization-toggle svg {
     transition: transform var(--transition);
 }
 
@@ -449,6 +451,71 @@ body {
 @keyframes slideDown {
     from { opacity: 0; max-height: 0; }
     to { opacity: 1; max-height: 300px; }
+}
+
+/* --- Visualizations --- */
+.visualization-section {
+    animation: fadeIn 0.6s ease 0.3s both;
+}
+
+.visualization-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--text-muted);
+    font-family: var(--font-ui);
+    font-size: 0.72em;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition);
+    letter-spacing: 0.5px;
+}
+
+.visualization-toggle:hover {
+    color: var(--text-dim);
+    border-color: var(--border-light);
+}
+
+.visualization-panel {
+    display: grid;
+    gap: 10px;
+    margin-top: 8px;
+    animation: slideDown 0.25s ease;
+}
+
+.visualization-panel[hidden] {
+    display: none;
+}
+
+.visualization-card {
+    padding: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: inset 0 2px 8px var(--shadow);
+}
+
+.visualization-card__label {
+    margin-bottom: 10px;
+    font-family: var(--font-display);
+    font-size: 0.7em;
+    color: var(--text-dim);
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
+}
+
+.visualization-canvas {
+    width: 100%;
+    height: 96px;
+    display: block;
+    border-radius: var(--radius-sm);
+    background: var(--panel-dark);
 }
 
 /* --- String Cards --- */

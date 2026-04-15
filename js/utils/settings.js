@@ -22,6 +22,8 @@ export class Settings {
     constructor() {
         this.values = { ...DEFAULTS };
         this.listeners = new Map();
+        this._isPanelOpen = false;
+        this._lastFocusedElement = null;
         this.load();
     }
 
@@ -96,66 +98,103 @@ export class Settings {
     }
 
     initPanel() {
-        // Settings open/close
         const settingsToggle = document.getElementById('settingsToggle');
         const settingsClose = document.getElementById('settingsClose');
         const settingsPanel = document.getElementById('settingsPanel');
         const settingsOverlay = document.getElementById('settingsOverlay');
+        const a4Input = document.getElementById('a4Input');
+        const a4Minus = document.getElementById('a4Minus');
+        const a4Plus = document.getElementById('a4Plus');
+        const transposition = document.getElementById('transposition');
+        const focusSelector = 'button, input, select, textarea, [href], [tabindex]:not([tabindex="-1"])';
 
-        const openPanel = () => {
-            if (!settingsPanel || !settingsOverlay) return;
-            settingsPanel.removeAttribute('hidden');
-            settingsOverlay.removeAttribute('hidden');
-            requestAnimationFrame(() => {
-                settingsPanel.classList.add('visible');
-                settingsOverlay.classList.add('visible');
-            });
+        const getFocusable = () => {
+            if (!settingsPanel) return [];
+            return [...settingsPanel.querySelectorAll(focusSelector)]
+                .filter((el) => !el.hasAttribute('disabled') && !el.hidden);
         };
 
         const closePanel = () => {
-            if (!settingsPanel || !settingsOverlay) return;
+            if (!settingsPanel || !settingsOverlay || !this._isPanelOpen) return;
+            this._isPanelOpen = false;
+            settingsToggle?.setAttribute('aria-expanded', 'false');
             settingsPanel.classList.remove('visible');
             settingsOverlay.classList.remove('visible');
             const onEnd = () => {
                 settingsPanel.setAttribute('hidden', '');
                 settingsOverlay.setAttribute('hidden', '');
                 settingsPanel.removeEventListener('transitionend', onEnd);
+                this._lastFocusedElement?.focus?.();
             };
-            settingsPanel.addEventListener('transitionend', onEnd);
+            settingsPanel.addEventListener('transitionend', onEnd, { once: true });
+            window.setTimeout(onEnd, 450);
         };
 
-        if (settingsToggle) settingsToggle.addEventListener('click', openPanel);
-        if (settingsClose) settingsClose.addEventListener('click', closePanel);
-        if (settingsOverlay) settingsOverlay.addEventListener('click', closePanel);
+        const openPanel = () => {
+            if (!settingsPanel || !settingsOverlay || this._isPanelOpen) return;
+            this._isPanelOpen = true;
+            this._lastFocusedElement = document.activeElement;
+            settingsToggle?.setAttribute('aria-expanded', 'true');
+            settingsPanel.removeAttribute('hidden');
+            settingsOverlay.removeAttribute('hidden');
+            requestAnimationFrame(() => {
+                settingsPanel.classList.add('visible');
+                settingsOverlay.classList.add('visible');
+                const focusable = getFocusable();
+                (focusable[0] || settingsPanel).focus();
+            });
+        };
 
-        // A4 Reference
-        const a4Input = document.getElementById('a4Input');
-        const a4Minus = document.getElementById('a4Minus');
-        const a4Plus = document.getElementById('a4Plus');
+        const onDocumentKeydown = (event) => {
+            if (!this._isPanelOpen || !settingsPanel) return;
+
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                closePanel();
+                return;
+            }
+
+            if (event.key !== 'Tab') return;
+
+            const focusable = getFocusable();
+            if (focusable.length === 0) return;
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+
+            if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault();
+                first.focus();
+            }
+        };
+
+        document.addEventListener('keydown', onDocumentKeydown);
+
+        settingsToggle?.addEventListener('click', openPanel);
+        settingsClose?.addEventListener('click', closePanel);
+        settingsOverlay?.addEventListener('click', closePanel);
 
         const updateA4Display = (val) => {
             if (a4Input) a4Input.value = val;
         };
 
-        if (a4Minus) {
-            a4Minus.addEventListener('click', () => {
-                const curr = this.get('a4Reference');
-                if (curr > 430) {
-                    this.set('a4Reference', curr - 1);
-                    updateA4Display(curr - 1);
-                }
-            });
-        }
+        a4Minus?.addEventListener('click', () => {
+            const curr = this.get('a4Reference');
+            if (curr > 430) {
+                this.set('a4Reference', curr - 1);
+                updateA4Display(curr - 1);
+            }
+        });
 
-        if (a4Plus) {
-            a4Plus.addEventListener('click', () => {
-                const curr = this.get('a4Reference');
-                if (curr < 450) {
-                    this.set('a4Reference', curr + 1);
-                    updateA4Display(curr + 1);
-                }
-            });
-        }
+        a4Plus?.addEventListener('click', () => {
+            const curr = this.get('a4Reference');
+            if (curr < 450) {
+                this.set('a4Reference', curr + 1);
+                updateA4Display(curr + 1);
+            }
+        });
 
         if (a4Input) {
             a4Input.value = this.get('a4Reference');
@@ -168,7 +207,6 @@ export class Settings {
             });
         }
 
-        // Setting toggle groups
         const settingGroups = document.querySelectorAll('.setting-group');
 
         const findToggleGroup = (labelText) => {
@@ -186,35 +224,28 @@ export class Settings {
             if (!toggle) return;
             const btns = toggle.querySelectorAll('.setting-toggle__btn');
 
-            // Set initial active state from stored value
-            const current = this.get(settingKey);
-            btns.forEach(btn => {
-                const isActive = btn.dataset.value === String(current);
-                btn.classList.toggle('active', isActive);
-                btn.setAttribute('aria-checked', String(isActive));
-            });
+            const syncButtons = (value) => {
+                btns.forEach((btn) => {
+                    const isActive = btn.dataset.value === String(value);
+                    btn.classList.toggle('active', isActive);
+                    btn.setAttribute('aria-checked', String(isActive));
+                });
+            };
 
-            btns.forEach(btn => {
+            syncButtons(this.get(settingKey));
+            this.onChange(settingKey, syncButtons);
+
+            btns.forEach((btn) => {
                 btn.addEventListener('click', () => {
-                    btns.forEach(b => {
-                        b.classList.remove('active');
-                        b.setAttribute('aria-checked', 'false');
-                    });
-                    btn.classList.add('active');
-                    btn.setAttribute('aria-checked', 'true');
                     this.set(settingKey, btn.dataset.value);
                 });
             });
         };
 
-        // Sensitivity
         wireToggleGroup('Sensitivity', 'sensitivity');
-
-        // Notation
+        wireToggleGroup('Meter Style', 'meterStyle');
         wireToggleGroup('Notation', 'notation');
 
-        // Transposition
-        const transposition = document.getElementById('transposition');
         if (transposition) {
             transposition.value = String(this.get('transposition'));
             transposition.addEventListener('change', () => {

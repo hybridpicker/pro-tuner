@@ -24,6 +24,7 @@ export class StringDisplay {
             card.tabIndex = 0;
             card.setAttribute('role', 'button');
             card.setAttribute('aria-label', `String ${str.stringNum}, ${str.note}, ${str.freq} Hz`);
+            card.setAttribute('aria-pressed', 'false');
 
             card.innerHTML =
                 `<div class="string-card__name">String ${str.stringNum}</div>` +
@@ -36,26 +37,22 @@ export class StringDisplay {
     }
 
     _bindCardEvents(card, str, index) {
-        // Single click
         card.addEventListener('click', () => {
             if (this.onStringClick) {
                 this.onStringClick(str, index);
             }
         });
 
-        // Double-click toggles lock
         card.addEventListener('dblclick', (e) => {
             e.preventDefault();
             this.toggleLock(index);
         });
 
-        // Long-press toggles lock (touch devices)
-        card.addEventListener('touchstart', (e) => {
+        card.addEventListener('touchstart', () => {
             this._longPressTimer = setTimeout(() => {
-                e.preventDefault();
                 this.toggleLock(index);
             }, this._longPressDelay);
-        }, { passive: true });
+        });
 
         card.addEventListener('touchend', () => {
             clearTimeout(this._longPressTimer);
@@ -65,13 +62,17 @@ export class StringDisplay {
             clearTimeout(this._longPressTimer);
         });
 
-        // Keyboard: Enter/Space
         card.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
                 if (this.onStringClick) {
                     this.onStringClick(str, index);
                 }
+            }
+
+            if (e.key.toLowerCase() === 'l') {
+                e.preventDefault();
+                this.toggleLock(index);
             }
         });
     }
@@ -93,9 +94,9 @@ export class StringDisplay {
     toggleLock(stringIndex) {
         const cards = this.container.children;
 
-        // Unlock current
         if (this.lockedIndex >= 0 && this.lockedIndex < cards.length) {
             cards[this.lockedIndex].classList.remove('locked');
+            cards[this.lockedIndex].setAttribute('aria-pressed', 'false');
         }
 
         if (this.lockedIndex === stringIndex) {
@@ -104,6 +105,7 @@ export class StringDisplay {
             this.lockedIndex = stringIndex;
             if (stringIndex >= 0 && stringIndex < cards.length) {
                 cards[stringIndex].classList.add('locked');
+                cards[stringIndex].setAttribute('aria-pressed', 'true');
             }
         }
     }
