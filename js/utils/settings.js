@@ -1,4 +1,5 @@
 const STORAGE_KEY = 'pro-tuner-settings';
+const NON_PERSISTED_KEYS = new Set(['meterStyle']);
 
 const DEFAULTS = {
     a4Reference: 440,
@@ -35,6 +36,7 @@ export class Settings {
             if (!parsed || typeof parsed !== 'object') return;
 
             for (const key of Object.keys(DEFAULTS)) {
+                if (NON_PERSISTED_KEYS.has(key)) continue;
                 if (!(key in parsed)) continue;
                 const val = parsed[key];
 
@@ -57,7 +59,12 @@ export class Settings {
 
     save() {
         try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(this.values));
+            const persistedValues = {};
+            for (const [key, value] of Object.entries(this.values)) {
+                if (NON_PERSISTED_KEYS.has(key)) continue;
+                persistedValues[key] = value;
+            }
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(persistedValues));
         } catch {
             // Storage full or unavailable
         }
