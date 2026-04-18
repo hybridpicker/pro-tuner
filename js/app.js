@@ -103,10 +103,8 @@ function init() {
   });
   settings.onChange('sensitivity', (val) => noiseGate.setSensitivity(val));
   settings.onChange('notation', () => updateNoteDisplay());
-  settings.onChange('meterStyle', (mode) => meter.setMode(mode));
-
   noiseGate.setSensitivity(settings.get('sensitivity'));
-  meter.setMode(settings.get('meterStyle'));
+  meter.setMode('needle');
 
   els.powerBtn.addEventListener('click', toggleTuner);
 

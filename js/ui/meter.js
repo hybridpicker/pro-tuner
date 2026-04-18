@@ -57,8 +57,7 @@ export class MeterDisplay {
 
   /** Switch between 'needle' and 'strobe' modes. */
   setMode(mode) {
-    if (mode !== 'needle' && mode !== 'strobe') return;
-    this.mode = mode;
+    this.mode = 'needle';
     this.reset();
   }
 
