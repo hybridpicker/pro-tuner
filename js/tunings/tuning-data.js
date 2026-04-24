@@ -380,7 +380,7 @@ export function findBestStringMatch(frequency, tuning, options = {}) {
 
       // Small bias toward staying on the same string to reduce card flicker.
       const preferredBias = preferredString === str.stringNum ? 6 : 0;
-      const octavePenalty = octaveShift === 0 ? 0 : 14;
+      const octavePenalty = octaveShift === 0 ? 0 : (octaveShift < 0 ? 14 : 24);
       const score = absCents + octavePenalty - preferredBias;
 
       if (!best || score < best.score) {

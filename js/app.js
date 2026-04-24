@@ -407,12 +407,16 @@ async function tryAudioWorklet() {
 }
 
 function startScriptProcessorFallback() {
-  const bufferSize = 4096;
+  const bufferSize = 8192;
   scriptProcessor = audioContext.createScriptProcessor(bufferSize, 1, 1);
   analyser.connect(scriptProcessor);
   scriptProcessor.connect(audioContext.destination);
 
   const buffer = new Float32Array(bufferSize);
+  if (!pitchDetector) {
+    pitchDetector = new PitchDetector(audioContext.sampleRate, bufferSize);
+  }
+  pitchDetector.setBufferSize(bufferSize);
 
   scriptProcessor.onaudioprocess = () => {
     analyser.getFloatTimeDomainData(buffer);

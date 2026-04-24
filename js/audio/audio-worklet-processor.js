@@ -57,9 +57,10 @@ function cumulativeMeanNormalizedDifference(diff, cmndf, maxLag) {
  * @param {number} minLag - Minimum lag (from max frequency)
  * @param {number} maxLag - Maximum lag (from min frequency)
  * @param {number} threshold - Absolute threshold
+ * @param {number} fallbackThreshold - Stricter fallback threshold
  * @returns {number} Best lag index, or -1 if not found
  */
-function absoluteThreshold(cmndf, minLag, maxLag, threshold) {
+function absoluteThreshold(cmndf, minLag, maxLag, threshold, fallbackThreshold) {
   for (let tau = minLag; tau < maxLag; tau++) {
     if (cmndf[tau] < threshold) {
       // Walk forward to find the local minimum
@@ -69,7 +70,17 @@ function absoluteThreshold(cmndf, minLag, maxLag, threshold) {
       return tau;
     }
   }
-  return -1;
+
+  let bestTau = -1;
+  let bestValue = 1;
+  for (let tau = minLag; tau < maxLag; tau++) {
+    if (cmndf[tau] < bestValue) {
+      bestValue = cmndf[tau];
+      bestTau = tau;
+    }
+  }
+
+  return bestValue < fallbackThreshold ? bestTau : -1;
 }
 
 /**
@@ -102,6 +113,7 @@ class PitchProcessor extends AudioWorkletProcessor {
 
     // Detection parameters
     this.threshold = 0.11;
+    this.fallbackThreshold = 0.18;
     this.minFrequency = 50;
     this.maxFrequency = 2000;
 
@@ -354,29 +366,10 @@ class PitchProcessor extends AudioWorkletProcessor {
       this._cmndfBuffer,
       this.minLag,
       effectiveMaxLag,
-      this.threshold
+      this.threshold,
+      this.fallbackThreshold
     );
     if (bestLag === -1) return null;
-
-    // Step 3b: Sub-octave preference — check if the fundamental is an octave
-    // below the detected lag. Guitar low strings often have a stronger 2nd
-    // harmonic, causing YIN to lock onto lag/2 (octave above fundamental).
-    const subOctaveLag = bestLag * 2;
-    if (subOctaveLag + 2 < effectiveMaxLag) {
-      const lo = Math.max(this.minLag, Math.floor(subOctaveLag * 0.95));
-      const hi = Math.min(effectiveMaxLag - 1, Math.ceil(subOctaveLag * 1.05));
-      let subBest = -1;
-      let subBestVal = 1;
-      for (let t = lo; t <= hi; t++) {
-        if (this._cmndfBuffer[t] < subBestVal) {
-          subBestVal = this._cmndfBuffer[t];
-          subBest = t;
-        }
-      }
-      if (subBest > 0 && subBestVal < this.threshold * 2.5) {
-        bestLag = subBest;
-      }
-    }
 
     // Step 4: Parabolic interpolation
     const refinedLag = parabolicInterpolation(

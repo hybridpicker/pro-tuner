@@ -18,6 +18,7 @@ export class PitchDetector {
     this.sampleRate = sampleRate;
     this.bufferSize = bufferSize;
     this.threshold = 0.11;
+    this.fallbackThreshold = 0.18;
 
     // Frequency range: 50Hz (bass low B) to 2000Hz (mandolin upper range)
     this.minFrequency = 50;
@@ -103,31 +104,12 @@ export class PitchDetector {
     // Step 2: Cumulative mean normalized difference d'(tau)
     this._cumulativeMeanNormalizedDifference(effectiveMaxLag);
 
-    // Step 3: Absolute threshold - find the first lag below threshold
+    // Step 3: Absolute threshold - find the first lag below threshold.
+    // If no valley crosses the YIN threshold, accept the strongest valley only
+    // when it is still clearly periodic. This keeps soft/inharmonic strings
+    // responsive without opening the door to noisy false positives.
     let bestLag = this._absoluteThreshold(effectiveMaxLag);
     if (bestLag === -1) return null;
-
-    // Step 3b: Sub-octave preference — check if the fundamental is an octave
-    // below the detected lag. Guitar low strings often have a stronger 2nd
-    // harmonic, causing YIN to lock onto lag/2 (octave above fundamental).
-    const subOctaveLag = bestLag * 2;
-    if (subOctaveLag + 2 < effectiveMaxLag) {
-      // Search for a CMNDF valley near lag×2 (±5%)
-      const lo = Math.max(this.minLag, Math.floor(subOctaveLag * 0.95));
-      const hi = Math.min(effectiveMaxLag - 1, Math.ceil(subOctaveLag * 1.05));
-      let subBest = -1;
-      let subBestVal = 1;
-      for (let t = lo; t <= hi; t++) {
-        if (this._cmndfBuffer[t] < subBestVal) {
-          subBestVal = this._cmndfBuffer[t];
-          subBest = t;
-        }
-      }
-      // Prefer sub-octave if its valley is reasonably strong
-      if (subBest > 0 && subBestVal < this.threshold * 2.5) {
-        bestLag = subBest;
-      }
-    }
 
     // Step 4: Parabolic interpolation for sub-sample accuracy
     const refinedLag = this._parabolicInterpolation(bestLag, effectiveMaxLag);
@@ -249,7 +231,16 @@ export class PitchDetector {
       }
     }
 
-    return -1;
+    let bestTau = -1;
+    let bestValue = 1;
+    for (let tau = this.minLag; tau < maxLag; tau++) {
+      if (cmndf[tau] < bestValue) {
+        bestValue = cmndf[tau];
+        bestTau = tau;
+      }
+    }
+
+    return bestValue < this.fallbackThreshold ? bestTau : -1;
   }
 
   /**

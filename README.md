@@ -55,8 +55,8 @@ Vanilla HTML + CSS + JS — no framework, no build step, no dependencies. Total 
 
 1. `getUserMedia` — echo cancellation, AGC and noise suppression **disabled**
 2. **AudioWorklet** runs YIN detection on the audio thread (falls back to ScriptProcessor)
-3. YIN steps: difference function → cumulative mean normalized difference → absolute threshold (0.11) → parabolic interpolation
-4. **Sub-octave validation** — after finding the first CMNDF valley, checks lag×2 for a fundamental an octave below; prefers it when CMNDF < threshold×2.5 (fixes harmonic confusion on low strings like E2/A2)
+3. YIN steps: difference function → cumulative mean normalized difference → absolute threshold (0.11) → periodic fallback threshold (0.18) → parabolic interpolation
+4. **Tuning-aware octave correction** — raw harmonic reads stay intact in chromatic mode, while instrument modes can correct ×2/÷2 matches against known string targets
 5. Adaptive buffer: 8192 samples below 200 Hz (low strings), 4096 above
 6. DC offset removal before each analysis window
 7. **Onset detection** — RMS jump >3× resets median filter and EMA for instant response to new notes
