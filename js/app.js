@@ -5,9 +5,9 @@
  * settings, and PWA features into a cohesive instrument tuner.
  */
 
-import { PitchDetector } from './audio/pitch-detector.js';
-import { NoiseGate } from './audio/noise-gate.js';
-import { ToneGenerator } from './audio/tone-generator.js';
+import { PitchDetector } from './audio/pitch-detector.js?v=20260502-2';
+import { NoiseGate } from './audio/noise-gate.js?v=20260502-2';
+import { ToneGenerator } from './audio/tone-generator.js?v=20260502-2';
 import {
   TUNINGS,
   CHROMATIC_MODE,
@@ -16,12 +16,12 @@ import {
   recalculateFrequencies,
   findBestStringMatch,
   frequencyToNote,
-} from './tunings/tuning-data.js';
-import { MeterDisplay } from './ui/meter.js';
-import { StringDisplay } from './ui/string-display.js';
-import { ThemeManager } from './ui/theme.js';
-import { Visualizations } from './ui/waveform.js';
-import { Settings } from './utils/settings.js';
+} from './tunings/tuning-data.js?v=20260502-2';
+import { MeterDisplay } from './ui/meter.js?v=20260502-2';
+import { StringDisplay } from './ui/string-display.js?v=20260502-2';
+import { ThemeManager } from './ui/theme.js?v=20260502-2';
+import { Visualizations } from './ui/waveform.js?v=20260502-2';
+import { Settings } from './utils/settings.js?v=20260502-2';
 
 const $ = (id) => document.getElementById(id);
 
@@ -390,7 +390,7 @@ async function startTuner() {
 
 async function tryAudioWorklet() {
   try {
-    await audioContext.audioWorklet.addModule('/js/audio/audio-worklet-processor.js');
+    await audioContext.audioWorklet.addModule('/js/audio/audio-worklet-processor.js?v=20260502-2');
     workletNode = new AudioWorkletNode(audioContext, 'pitch-processor');
     sourceNode.connect(workletNode);
     workletNode.connect(audioContext.destination);
