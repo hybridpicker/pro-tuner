@@ -49,7 +49,7 @@ Vanilla HTML + CSS + JS — no framework, no build step, no dependencies. Total 
 | `js/ui/string-display.js` | String cards, click/double-click/long-press |
 | `js/ui/theme.js` | Dark/light theme manager |
 | `js/utils/settings.js` | Settings panel, localStorage persistence |
-| `sw.js` | Service worker (cache-first PWA) |
+| `sw.js` | Service worker (network-first PWA cache with offline fallback) |
 
 ## Audio Pipeline
 
@@ -86,6 +86,18 @@ ssh jarvis@94.130.37.43 "cd /home/jarvis/apps/pro-tuner && git pull origin main"
 ```
 
 Nginx serves the directory directly with `Permissions-Policy: microphone=(self)`.
+
+### PWA cache updates
+
+Static assets are served with long-lived immutable caching, so any CSS/JS change that must take effect immediately needs a new query version in:
+
+- `index.html` for `/css/style.css?v=...` and `/js/app.js?v=...`
+- `js/app.js` for ES module imports and the AudioWorklet URL
+- `sw.js` `CACHE_NAME` and `ASSETS`
+
+The service worker uses network-first fetch with cache fallback, deletes old `pro-tuner-*` caches on activation, claims clients, and reloads open windows after replacing a stale app cache. It is registered with `updateViaCache: 'none'` so browser HTTP cache does not hide service worker updates.
+
+Server note: `/sw.js` should ideally be served with `Cache-Control: no-cache` or equivalent revalidation, not the generic immutable asset rule. If nginx cannot be changed, keep bumping `CACHE_NAME` and versioned asset URLs for deployments that affect cached files.
 
 </details>
 
