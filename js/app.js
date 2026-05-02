@@ -723,7 +723,7 @@ document.addEventListener('visibilitychange', () => {
 
 function registerServiceWorker() {
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js').catch(() => {
+    navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' }).catch(() => {
       // SW registration failed — app still works
     });
   }
